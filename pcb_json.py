@@ -220,14 +220,14 @@ class OutlineShape:
             points.append(Point(x_start + w, y_start + h))
             
             # Top edge (right to left)
-            points.append(Point(x_start, y_start + h))
+            points.append(Point(x_start + spacing, y_start + h))
             
             # Left edge (top to bottom, but stop at new start point)
             x_start += spacing
             y_start += spacing
             w -= 2 * spacing
             h -= 2 * spacing
-            points.append(Point(x_start, y_start))
+            #points.append(Point(x_start, y_start))
             
         return points
 
@@ -273,10 +273,10 @@ def round_corners(points: List[Point], radius: float, debug: bool = False) -> Li
 
 if __name__ == "__main__":
     # Parameters for the spiral
-    width = 50
+    width = 80
     height = 25
-    spacing = 5
-    turns = 5
+    spacing = 1
+    turns = 15
     corner_radius = 2.0
     
     # Generate rectangular spiral points
