@@ -76,6 +76,9 @@ if __name__ == "__main__":
         (0, height)
     ])
 
+    # Generate spiral points
+    pts = outline.generate_spiral(trace_spacing, turns)
+    
     # Flatten the list of points from all paths into a single list
     all_points = [point for path in pts for point in path]
     
