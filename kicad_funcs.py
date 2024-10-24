@@ -101,11 +101,32 @@ def create_antenna_spiral(all_points, mode="polygon", trace_width=0.2, via_point
         tuple: (main_section, via_sections, group_section, member_uuids)
     """
     
+    # Calculate bounds before flipping
+    min_x = min(x for x, y in all_points)
+    max_x = max(x for x, y in all_points)
+    min_y = min(y for x, y in all_points)
+    max_y = max(y for x, y in all_points)
+    width = max_x - min_x
+    height = max_y - min_y
+
     # Apply flipping transformations
     if flip_x or flip_y:
+        # First flip the points
         all_points = [((-x if flip_x else x), (-y if flip_y else y)) for x, y in all_points]
         if via_points:
             via_points = [((-x if flip_x else x), (-y if flip_y else y)) for x, y in via_points]
+        
+        # Then adjust position to maintain stacking
+        if flip_x:
+            # Shift points right by width
+            all_points = [(x + width, y) for x, y in all_points]
+            if via_points:
+                via_points = [(x + width, y) for x, y in via_points]
+        if flip_y:
+            # Shift points up by height
+            all_points = [(x, y + height) for x, y in all_points]
+            if via_points:
+                via_points = [(x, y + height) for x, y in via_points]
 
     # Generate UUID for the main element
     main_uuid = str(uuid.uuid4())
