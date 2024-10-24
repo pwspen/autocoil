@@ -433,7 +433,7 @@ def write_coils_to_file(filename, coil_sections, stack_uuids, num_sections_per_s
         # When we've processed all sections for a stack, create its group
         if (i + 1) % num_sections_per_stack == 0:
             stack_idx = i // num_sections_per_stack
-            stack_group, _ = create_stack_group(current_stack_members, 
+            stack_group, stack_uuid = create_stack_group(current_stack_members, 
                                            name=f"Coil Stack {stack_idx + 1}")
             new_content.append(stack_group)
             all_stack_uuids.append(stack_uuids[stack_idx])
@@ -453,8 +453,11 @@ def write_coils_to_file(filename, coil_sections, stack_uuids, num_sections_per_s
 	)'''
     new_content.append(radial_array_group)
     
-    # Join all sections and add final parenthesis  
-    new_content = "\n\t".join(filter(None, new_content)) + "\n)"
+    # Filter out None values and ensure all items are strings
+    filtered_content = [str(item) for item in new_content if item is not None]
+    
+    # Join all sections and add final parenthesis
+    new_content = "\n\t".join(filtered_content) + "\n)"
     
     # Insert the new content
     updated_content = pcb_content[:last_paren_index] + new_content
