@@ -76,7 +76,7 @@ def create_antenna_spiral(filename, all_points, via_points=None, show_plot=True)
     """
 
     # Generate the points section string
-    points_str = '\n\t\t\t'.join(f'(xy {p[0]:.6f} {p[1]:.6f})' for p in all_points)
+    points_str = '\n\t\t\t'.join(f'(xy {x:.6f} {y:.6f})' for x, y in all_points)
 
     # Generate UUID for the polygon
     poly_uuid = str(uuid.uuid4())
