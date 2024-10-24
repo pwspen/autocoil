@@ -367,13 +367,33 @@ def create_radial_array(coil_stack: CoilStack, num_copies: int,
     Returns:
         list: List of transformed coil sections
     """
-    all_sections = []
+    transformed_stacks = []
     
     for copy_num in range(num_copies):
         angle_rad = math.radians(start_angle_deg + copy_num * spacing_deg)
         
-        for main_section, via_sections, group_section, member_uuids in coil_sections:
-            print('member uuids', member_uuids)
+        # Create a new stack with transformed sections
+        transformed_sections = []
+        for section in coil_stack.sections:
+            # Transform points
+            transformed_points = transform_points(section.points, center_x, center_y, angle_rad)
+            transformed_via_points = None
+            if section.via_points is not None:
+                transformed_via_points = transform_points(section.via_points, center_x, center_y, angle_rad)
+                
+            transformed_sections.append(CoilSection(
+                points=transformed_points,
+                via_points=transformed_via_points,
+                mode=section.mode,
+                trace_width=section.trace_width,
+                layer=section.layer
+            ))
+            
+        transformed_stacks.append(CoilStack(
+            sections=transformed_sections,
+            width=coil_stack.width,
+            height=coil_stack.height
+        ))
             # Extract points from main section
             points_matches = re.finditer(r'\((?:start|end|xy|at) (-?\d+\.?\d*) (-?\d+\.?\d*)\)', 
                                        main_section + via_sections)

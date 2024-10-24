@@ -342,46 +342,19 @@ if __name__ == "__main__":
     all_coil_sections = []
     for stack in coil_stacks:
         for section in stack.sections:
-        if i == 0:
-            layer = "F.Cu"
-        elif i == num_layers - 1:
-            layer = "B.Cu"
-        else:
-            layer = f"In{i}.Cu"
-
-        via = vias[i // 2]
-
-        orig_final_pt = spiral_points[-1]
-        layer_pts = spiral_points[:-1]
-
-        corner_pt = Point(via[0], orig_final_pt.y)
-        final_pt = Point(via[0], via[1])
-
-        layer_pts.append(corner_pt)
-        layer_pts.append(final_pt)
-
-        if "In" in layer:
-            # Make room for via
-            orig_initial_pt = spiral_points[0]
-
-            # Add point to connect to via
-            via_connect_pt = Point(orig_initial_pt.x - (spacing*1.25 + via_spacing*((i-1) // 2)), height*0.5)
-            layer_pts.insert(0, via_connect_pt)
-
-            # Add via point
-            if i % 2 == 0:
-                add_vias.append((via_connect_pt.x, via_connect_pt.y))
-
-        rounded_points = round_corners(layer_pts, corner_radius, debug=False)
-
-        pts = [[p.x, p.y] for p in rounded_points]
-
-        coil_sections.append(
-            create_antenna_spiral(pts, mode="trace", trace_width=trace_width, 
-                                via_points=add_vias, flip_x=False, flip_y=((i + 1) % 2 == 0), layer=layer)
-        )
-        add_vias = []
-        print(f'Layer {i} complete')
+            # Convert numpy points to list format
+            pts = section.points.tolist()
+            via_pts = section.via_points.tolist() if section.via_points is not None else None
+            
+            # Create KiCAD sections
+            main_section, via_section, group_section, member_uuids = create_antenna_spiral(
+                pts, 
+                mode=section.mode.value,
+                trace_width=section.trace_width,
+                via_points=via_pts,
+                layer=section.layer
+            )
+            all_coil_sections.append((main_section, via_section, group_section, member_uuids))
 
     # Create radial array of coil stacks
     num_copies = 4  # Number of copies including original
