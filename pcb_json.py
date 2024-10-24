@@ -342,8 +342,8 @@ if __name__ == "__main__":
         num_copies=num_copies,
         center_x=center_x,
         center_y=center_y,
-        start_angle=start_angle,
-        spacing_angle=spacing_angle
+        start_angle_deg=start_angle,
+        spacing_deg=spacing_angle
     )
     
     # Generate KiCAD sections for each stack
@@ -351,8 +351,8 @@ if __name__ == "__main__":
     for stack in coil_stacks:
         for section in stack.sections:
             # Convert numpy points to list format
-            pts = section.points.tolist()
-            via_pts = section.via_points.tolist() if section.via_points is not None else None
+            pts = section.points
+            via_pts = section.via_points if section.via_points is not None else None
             
             # Create KiCAD sections
             main_section, via_section, group_section, member_uuids = create_antenna_spiral(
@@ -363,23 +363,6 @@ if __name__ == "__main__":
                 layer=section.layer
             )
             all_coil_sections.append((main_section, via_section, group_section, member_uuids))
-
-    # Create radial array of coil stacks
-    num_copies = 4  # Number of copies including original
-    center_x = -50  # Center of rotation
-    center_y = 0
-    start_angle = 0  # Starting angle in degrees
-    spacing_angle = 90  # Degrees between copies
-    
-    # Transform coils into radial array
-    coil_stacks = create_radial_array(
-        coil_stack=coil_stack,
-        num_copies=num_copies,
-        center_x=center_x,
-        center_y=center_y,
-        start_angle_deg=start_angle,
-        spacing_deg=spacing_angle
-    )
     
     # Create a stack group for all coils
     all_member_uuids = []
@@ -389,5 +372,5 @@ if __name__ == "__main__":
     stack_group = create_stack_group(all_member_uuids, name="Multi-Layer Coil Array")
     
     # Write all coils and stack group to file
-    #write_coils_to_file("mycoil/mycoil.kicad_pcb", all_coil_sections, stack_name="Multi-Layer Coil Array")
+    write_coils_to_file("mycoil/mycoil.kicad_pcb", all_coil_sections, stack_name="Multi-Layer Coil Array")
     print('Saved to file')
