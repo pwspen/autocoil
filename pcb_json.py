@@ -236,22 +236,31 @@ def round_corners(points: List[Point], radius: float, debug: bool = False) -> Li
     if len(points) < 3:
         return points
         
-    rounded_points = []
+    rounded_points = [points[0]]  # Start with first point
     fig = None
     axes = None
     
     if debug:
         # Calculate number of rows/columns needed for subplots
-        n_corners = len(points)
+        n_corners = len(points) - 2  # Exclude first and last corners
         n_rows = int(np.ceil(np.sqrt(n_corners)))
         n_cols = int(np.ceil(n_corners / n_rows))
         fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 5*n_rows))
         axes = axes.flatten() if isinstance(axes, np.ndarray) else [axes]
     
-    for i in range(len(points)):
+    # Process all points except first and last
+    for i in range(len(points) - 2):
         p1 = points[i]
-        p2 = points[(i + 1) % len(points)]
-        p3 = points[(i + 2) % len(points)]
+        p2 = points[i + 1]
+        p3 = points[i + 2]
+        
+        # Check line lengths
+        line1_length = p1.distance_to(p2)
+        line2_length = p2.distance_to(p3)
+        
+        if line1_length < 2 * radius or line2_length < 2 * radius:
+            raise ValueError(f"Line segment at point {i+1} is too short for the specified radius. "
+                           f"Line lengths: {line1_length:.2f}, {line2_length:.2f}, Required: {2*radius}")
         
         # Create lines for this corner
         line1 = Line(p1, p2)
@@ -263,7 +272,11 @@ def round_corners(points: List[Point], radius: float, debug: bool = False) -> Li
             ax.set_title(f'Corner {i+1}')
             
         arc_points = create_arc(line1, line2, radius, ax=ax, debug=debug)
-        rounded_points.extend(arc_points)
+        if arc_points:
+            rounded_points.extend(arc_points[:-1])  # Don't include last point of arc
+            
+    # Add the final point
+    rounded_points.append(points[-1])
     
     if debug:
         plt.tight_layout()
