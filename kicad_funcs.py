@@ -80,7 +80,7 @@ def create_group_section(member_uuids, name=""):
 		)
 	)'''
     
-    return group_section
+    return group_section, group_uuid
 
 def create_trace(start_point, end_point, width=0.2, layer="F.Cu"):
     """
@@ -433,17 +433,27 @@ def write_coils_to_file(filename, coil_sections, stack_uuids, num_sections_per_s
         # When we've processed all sections for a stack, create its group
         if (i + 1) % num_sections_per_stack == 0:
             stack_idx = i // num_sections_per_stack
-            stack_group = create_stack_group(current_stack_members, 
-                                          name=f"Coil Stack {stack_idx + 1}")
+            stack_group, _ = create_stack_group(current_stack_members, 
+                                           name=f"Coil Stack {stack_idx + 1}")
             new_content.append(stack_group)
             all_stack_uuids.append(stack_uuids[stack_idx])
             current_stack_members = []
     
     # Create a group for the entire array
-    array_group = create_stack_group(all_stack_uuids, name=stack_name)
+    array_group, array_group_uuid = create_stack_group(all_stack_uuids, name=stack_name)
     new_content.append(array_group)
     
-    # Join all sections and add final parenthesis
+    # Create a final group containing all stacks in the radial array
+    radial_array_uuid = str(uuid.uuid4())
+    radial_array_group = f'''(group "Radial Coil Array"
+		(uuid "{radial_array_uuid}")
+		(members
+		"{array_group_uuid}"
+		)
+	)'''
+    new_content.append(radial_array_group)
+    
+    # Join all sections and add final parenthesis  
     new_content = "\n\t".join(filter(None, new_content)) + "\n)"
     
     # Insert the new content
