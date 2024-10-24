@@ -312,7 +312,7 @@ if __name__ == "__main__":
     turns = 50
     corner_radius = 1.0
     trace_width = 0.1  # Added configurable trace width
-    num_layers = 8
+    num_layers = 6
     # Generate rectangular spiral points
     spiral_points = OutlineShape.generate_rectangular_spiral(width, height, spacing, turns)
     

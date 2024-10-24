@@ -1,7 +1,6 @@
 # TODO
-- [ ] generate automatically connected and flipped coil stacks for arbitrary num of layers
 - [ ] radially distribute coil stacks
-- [ ] Do stitching with equally spaced vias in center cutout
-- [ ]
-- [ ]
-- [ ] 
+- [ ] generate interconnects - each phase at different radius, wye centerpoint at innermost radius (full circular)
+- [ ] generate air gaps (in coil centers and to side of each coil)
+- [ ] name layers/groups etc
+- [ ] better grouping
