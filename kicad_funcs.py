@@ -288,9 +288,10 @@ def create_antenna_spiral(all_points, mode="polygon", trace_width=0.2, via_point
 
     # Create group section for this coil (including its traces/polygon and vias)
     all_element_uuids = trace_uuids + via_uuids
+    group_uuid = str(uuid.uuid4())
     group_section = create_group_section(all_element_uuids, name=f"Coil Layer {layer}")
     
-    return main_section, via_sections, group_section, [coil_group_uuid]
+    return main_section, via_sections, group_section, [group_uuid], all_element_uuids
 
 def create_stack_group(member_uuids, name="Coil Stack"):
     """
@@ -407,7 +408,7 @@ def write_coils_to_file(filename, coil_sections, stack_uuids, num_sections_per_s
     
     Args:
         filename (str): KiCad PCB filename
-        coil_sections (list): List of (main_section, via_sections, group_section, member_uuids) tuples
+        coil_sections (list): List of (main_section, via_sections, group_section, member_uuids, element_uuids) tuples
         stack_uuids (list): List of UUIDs for each stack group
         num_sections_per_stack (int): Number of sections in each coil stack
         stack_name (str): Name for the final array group
@@ -425,9 +426,9 @@ def write_coils_to_file(filename, coil_sections, stack_uuids, num_sections_per_s
     
     # Group coils by stack
     current_stack_members = []
-    for i, (main_section, via_sections, group_section, member_uuids) in enumerate(coil_sections):
+    for i, (main_section, via_sections, group_section, group_uuid, element_uuids) in enumerate(coil_sections):
         new_content.extend([main_section, via_sections, group_section])
-        current_stack_members.extend(member_uuids)
+        current_stack_members.extend(element_uuids + group_uuid)
         
         # When we've processed all sections for a stack, create its group
         if (i + 1) % num_sections_per_stack == 0:

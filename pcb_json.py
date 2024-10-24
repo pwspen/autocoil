@@ -357,14 +357,14 @@ if __name__ == "__main__":
             via_pts = section.via_points if section.via_points is not None else None
             
             # Create KiCAD sections
-            main_section, via_section, group_section, member_uuids = create_antenna_spiral(
+            main_section, via_section, group_section, group_uuid, element_uuids = create_antenna_spiral(
                 pts, 
                 mode=section.mode.value,
                 trace_width=section.trace_width,
                 via_points=via_pts,
                 layer=section.layer
             )
-            all_coil_sections.append((main_section, via_section, group_section, member_uuids))
+            all_coil_sections.append((main_section, via_section, group_section, group_uuid, element_uuids))
     
     # Write all coils and stack groups to file
     write_coils_to_file("mycoil/mycoil.kicad_pcb", all_coil_sections, stack_uuids,
