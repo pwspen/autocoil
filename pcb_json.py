@@ -9,7 +9,8 @@ from kicad_funcs import (
     create_antenna_spiral, 
     write_coils_to_file, 
     create_stack_group,
-    create_radial_array
+    create_radial_array,
+    generate_coil_stack
 )
 
 
@@ -371,13 +372,13 @@ if __name__ == "__main__":
     spacing_angle = 90  # Degrees between copies
     
     # Transform coils into radial array
-    all_coil_sections = create_radial_array(
-        coil_sections, 
-        num_copies,
-        center_x, 
-        center_y,
-        start_angle,
-        spacing_angle
+    coil_stacks = create_radial_array(
+        coil_stack=coil_stack,
+        num_copies=num_copies,
+        center_x=center_x,
+        center_y=center_y,
+        start_angle_deg=start_angle,
+        spacing_deg=spacing_angle
     )
     
     # Create a stack group for all coils
