@@ -367,6 +367,7 @@ if __name__ == "__main__":
             all_coil_sections.append((main_section, via_section, group_section, member_uuids))
     
     # Write all coils and stack groups to file
-    write_coils_to_file("mycoil/mycoil.kicad_pcb", all_coil_sections, stack_uuids, 
+    write_coils_to_file("mycoil/mycoil.kicad_pcb", all_coil_sections, stack_uuids,
+                       num_sections_per_stack=len(coil_stack.sections),
                        stack_name="Multi-Layer Coil Array")
     print('Saved to file')

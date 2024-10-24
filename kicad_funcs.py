@@ -401,7 +401,7 @@ def create_radial_array(coil_stack: CoilStack, num_copies: int,
     
     return transformed_stacks
 
-def write_coils_to_file(filename, coil_sections, stack_uuids, stack_name="Coil Stack"):
+def write_coils_to_file(filename, coil_sections, stack_uuids, num_sections_per_stack, stack_name="Coil Stack"):
     """
     Writes multiple coil sections to a KiCad PCB file.
     
@@ -409,6 +409,7 @@ def write_coils_to_file(filename, coil_sections, stack_uuids, stack_name="Coil S
         filename (str): KiCad PCB filename
         coil_sections (list): List of (main_section, via_sections, group_section, member_uuids) tuples
         stack_uuids (list): List of UUIDs for each stack group
+        num_sections_per_stack (int): Number of sections in each coil stack
         stack_name (str): Name for the final array group
     """
     # Read the KiCad PCB file
@@ -429,8 +430,8 @@ def write_coils_to_file(filename, coil_sections, stack_uuids, stack_name="Coil S
         current_stack_members.extend(member_uuids)
         
         # When we've processed all sections for a stack, create its group
-        if (i + 1) % len(coil_stack.sections) == 0:
-            stack_idx = i // len(coil_stack.sections)
+        if (i + 1) % num_sections_per_stack == 0:
+            stack_idx = i // num_sections_per_stack
             stack_group = create_stack_group(current_stack_members, 
                                           name=f"Coil Stack {stack_idx + 1}")
             new_content.append(stack_group)
