@@ -5,7 +5,7 @@ import uuid
 import math
 from dataclasses import dataclass
 from typing import Tuple, List
-from kicad_funcs import create_antenna_spiral, write_coils_to_file
+from kicad_funcs import create_antenna_spiral, write_coils_to_file, create_stack_group
 
 
 @dataclass
