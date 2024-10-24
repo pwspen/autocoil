@@ -128,18 +128,18 @@ def create_antenna_spiral(all_points, mode="polygon", trace_width=0.2, via_point
             if via_points:
                 via_points = [(x, y + height) for x, y in via_points]
 
-    # Generate UUID for the main element
-    main_uuid = str(uuid.uuid4())
-    
-    # Create a single UUID for the entire coil group
+    # Generate UUIDs for elements
+    trace_uuids = []
+    via_uuids = []
     coil_group_uuid = str(uuid.uuid4())
-    member_uuids = [coil_group_uuid]
     
     if mode == "polygon":
         # Generate the points section string for polygon
         points_str = '\n\t\t\t'.join(f'(xy {x:.6f} {y:.6f})' for x, y in all_points)
         
         # Create the full polygon section
+        poly_uuid = str(uuid.uuid4())
+        trace_uuids.append(poly_uuid)
         main_section = f'''(gr_poly
             (pts
                 {points_str}
@@ -150,7 +150,7 @@ def create_antenna_spiral(all_points, mode="polygon", trace_width=0.2, via_point
             )
             (fill solid)
             (layer "{layer}")
-            (uuid "{coil_group_uuid}")
+            (uuid "{poly_uuid}")
         )'''
     else:  # trace mode
         # Create traces between consecutive points
@@ -158,20 +158,23 @@ def create_antenna_spiral(all_points, mode="polygon", trace_width=0.2, via_point
         for i in range(len(all_points)-1):
             start = all_points[i]
             end = all_points[i+1]
-            trace_section, _ = create_trace(start, end, width=trace_width, layer=layer)
+            trace_section, trace_uuid = create_trace(start, end, width=trace_width, layer=layer)
             trace_sections.append(trace_section)
+            trace_uuids.append(trace_uuid)
         main_section = "\n".join(trace_sections)
 
     # Generate via sections if via points were provided
     via_sections = ""
     if via_points:
-        via_text, _ = create_via_section(via_points)
+        via_text, new_via_uuids = create_via_section(via_points)
         via_sections = via_text
+        via_uuids.extend(new_via_uuids)
 
-    # Create the group section
-    group_section = create_group_section(member_uuids)
+    # Create group section for this coil (including its traces/polygon and vias)
+    all_element_uuids = trace_uuids + via_uuids
+    group_section = create_group_section(all_element_uuids)
     
-    return main_section, via_sections, group_section, member_uuids
+    return main_section, via_sections, group_section, [coil_group_uuid]
 
 def create_stack_group(member_uuids, name="Coil Stack"):
     """
