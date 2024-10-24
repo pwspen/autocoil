@@ -312,17 +312,17 @@ if __name__ == "__main__":
     turns = 50
     corner_radius = 1.0
     trace_width = 0.1  # Added configurable trace width
-    
+    num_layers = 8
     # Generate rectangular spiral points
     spiral_points = OutlineShape.generate_rectangular_spiral(width, height, spacing, turns)
     
-    num_layers = 4
     via_count = num_layers // 2
-    via_spacing = (width - (2*turns*spacing)) / (via_count + 1)
+    via_spacing = 3.5*spacing
     via_start = turns*spacing
     vias = [(via_start + i*via_spacing, height*0.5) for i in range(1, via_count + 1)]
 
     coil_sections = []
+    add_vias = vias.copy()
     for i in range(num_layers):
         if i == 0:
             layer = "F.Cu"
@@ -345,16 +345,14 @@ if __name__ == "__main__":
         if "In" in layer:
             # Make room for via
             orig_initial_pt = spiral_points[0]
-            new_initial_pt = Point(orig_initial_pt.x - spacing, orig_initial_pt.y)
-            spiral_points[0] = new_initial_pt
 
             # Add point to connect to via
-            via_connect_pt = Point(new_initial_pt.x, height*0.5)
+            via_connect_pt = Point(orig_initial_pt.x - (spacing*1.25 + via_spacing*((i-1) // 2)), height*0.5)
             layer_pts.insert(0, via_connect_pt)
 
             # Add via point
             if i % 2 == 0:
-                vias.append((via_connect_pt.x, via_connect_pt.y))
+                add_vias.append((via_connect_pt.x, via_connect_pt.y))
 
         rounded_points = round_corners(layer_pts, corner_radius, debug=False)
 
@@ -362,9 +360,9 @@ if __name__ == "__main__":
 
         coil_sections.append(
             create_antenna_spiral(pts, mode="trace", trace_width=trace_width, 
-                                via_points=vias, flip_x=False, flip_y=((i + 1) % 2 == 0), layer=layer)
+                                via_points=add_vias, flip_x=False, flip_y=((i + 1) % 2 == 0), layer=layer)
         )
-        vias = []
+        add_vias = []
 
     # Write all coils to file
     write_coils_to_file("mycoil/mycoil.kicad_pcb", coil_sections)
