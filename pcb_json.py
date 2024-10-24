@@ -104,8 +104,8 @@ class OutlineShape:
         
         for point in self.points:
             # Calculate angle from center to point
-            dx = point[0] - self.center[0]
-            dy = point[1] - self.center[1]
+            dx = point.x - self.center.x
+            dy = point.y - self.center.y
             angle = math.atan2(dy, dx)
             
             # Normalize angle to [0, 2π]
@@ -127,7 +127,7 @@ class OutlineShape:
             # Calculate new point
             new_x = self.center[0] + (new_distance * math.cos(angle))
             new_y = self.center[1] + (new_distance * math.sin(angle))
-            new_points.append((new_x, new_y))
+            new_points.append(Point(new_x, new_y))
             
         return OutlineShape(new_points)
 
@@ -154,10 +154,10 @@ if __name__ == "__main__":
     via_points = [(0, 0), (25, 12.5), (50, 25)]  # Example via coordinates
 
     outline = OutlineShape([
-        (0, 0),
-        (width, 0),
-        (width, height),
-        (0, height)
+        Point(0, 0),
+        Point(width, 0),
+        Point(width, height),
+        Point(0, height)
     ])
 
     # Create a rounded rectangle outline
