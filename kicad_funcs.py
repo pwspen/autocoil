@@ -100,6 +100,9 @@ def create_antenna_spiral(filename, all_points, mode="polygon", via_points=None,
     # Generate UUID for the main element
     main_uuid = str(uuid.uuid4())
     
+    # Initialize member_uuids list
+    member_uuids = []
+    
     if mode == "polygon":
         # Generate the points section string for polygon
         points_str = '\n\t\t\t'.join(f'(xy {x:.6f} {y:.6f})' for x, y in all_points)
@@ -132,7 +135,8 @@ def create_antenna_spiral(filename, all_points, mode="polygon", via_points=None,
 
     # Generate via sections if via points were provided
     via_sections = ""
-    member_uuids = [main_uuid] if mode == "polygon" else []
+    if mode == "polygon":
+        member_uuids.append(main_uuid)
     if via_points:
         via_text, via_uuids = create_via_section(via_points)
         via_sections = via_text
