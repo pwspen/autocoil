@@ -1,2 +1,4 @@
 .aider*
 .env
+mycoil/mycoil-backups
+__pycache__
