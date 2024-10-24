@@ -302,7 +302,7 @@ def create_stack_group(member_uuids, name="Coil Stack"):
         name (str): Name for the group
         
     Returns:
-        str: Formatted group section text
+        tuple: (group_section, group_uuid) - The formatted group text and its UUID
     """
     # Format member UUIDs with at most 2 per line
     members_text = []
@@ -319,7 +319,7 @@ def create_stack_group(member_uuids, name="Coil Stack"):
 		)
 	)'''
     
-    return group_section
+    return group_section, group_uuid
 
 def transform_point(point, center_x, center_y, angle_rad):
     """
