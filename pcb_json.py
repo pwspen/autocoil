@@ -56,17 +56,16 @@ class OutlineShape:
         for i in range(total_steps):
             rotation = (2 * math.pi * i) / steps_per_rotation
             inset_shape = self.get_inset_shape(trace_spacing, rotation)
-            paths.append(inset_shape.points)
+            paths.extend(inset_shape.points)
         
         return paths
 
 if __name__ == "__main__":
-    
     width = 50
     height = 25
-    trace_spacing = 3
+    trace_spacing = 10
     trace_width = 1
-    turns = 5
+    turns = 1
     via_points = [(0, 0), (25, 12.5), (50, 25)]  # Example via coordinates
 
     outline = OutlineShape([
@@ -77,9 +76,20 @@ if __name__ == "__main__":
     ])
 
     # Generate spiral points
-    pts = outline.generate_spiral(trace_spacing, turns)
+    pts = [[0, 0],
+           [0, 25],
+           [25, 25],
+           [25, 0],
+           [50, 0],
+           [50, 25],
+           [25, 25],
+           [25, 12.5],
+           [0, 12.5],
+           [0, 25],
+           [25, 25],
+           [25, 0],
+           [0, 0]
+           ]
     
-    # Flatten the list of points from all paths into a single list
-    all_points = [point for path in pts for point in path]
     
-    create_antenna_spiral("mycoil/mycoil.kicad_pcb", all_points)
+    create_antenna_spiral("mycoil/mycoil.kicad_pcb", pts, mode="trace")
