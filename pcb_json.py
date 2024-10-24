@@ -368,10 +368,11 @@ if __name__ == "__main__":
                                 via_points=add_vias, flip_x=False, flip_y=((i + 1) % 2 == 0), layer=layer)
         )
         add_vias = []
+        print(f'Layer {i} complete')
 
     # Create radial array of coil stacks
     num_copies = 4  # Number of copies including original
-    center_x = 0  # Center of rotation
+    center_x = -50  # Center of rotation
     center_y = 0
     start_angle = 0  # Starting angle in degrees
     spacing_angle = 90  # Degrees between copies
@@ -394,4 +395,5 @@ if __name__ == "__main__":
     stack_group = create_stack_group(all_member_uuids, name="Multi-Layer Coil Array")
     
     # Write all coils and stack group to file
-    write_coils_to_file("mycoil/mycoil.kicad_pcb", all_coil_sections, stack_name="Multi-Layer Coil Array")
+    #write_coils_to_file("mycoil/mycoil.kicad_pcb", all_coil_sections, stack_name="Multi-Layer Coil Array")
+    print('Saved to file')

@@ -33,6 +33,7 @@ def create_via_section(via_points):
     return '\n'.join(via_sections), via_uuids
 
 def create_group_section(member_uuids, name=""):
+    
     """
     Create a KiCad PCB group section for the given member UUIDs.
     
@@ -256,6 +257,7 @@ def create_radial_array(coil_sections, num_copies, center_x, center_y, start_ang
         angle_rad = math.radians(start_angle_deg + copy_num * spacing_deg)
         
         for main_section, via_sections, group_section, member_uuids in coil_sections:
+            print('member uuids', member_uuids)
             # Extract points from main section
             points_matches = re.finditer(r'\((?:start|end|xy|at) (-?\d+\.?\d*) (-?\d+\.?\d*)\)', 
                                        main_section + via_sections)
@@ -288,7 +290,7 @@ def create_radial_array(coil_sections, num_copies, center_x, center_y, start_ang
             layer_match = re.search(r'layer "([^"]+)"', new_main)
             layer_name = layer_match.group(1) if layer_match else "Unknown"
             new_group = create_group_section(new_uuids, name=f"Coil Layer {layer_name}")
-            
+            print('new uuids', new_uuids)
             all_sections.append((new_main, new_vias, new_group, new_uuids))
     
     return all_sections
