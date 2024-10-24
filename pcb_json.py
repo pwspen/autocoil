@@ -201,27 +201,35 @@ class OutlineShape:
         return OutlineShape(new_points)
 
     def generate_rectangular_spiral(width: float, height: float, spacing: float, turns: int) -> List[Point]:
-        """Generate points for a rectangular spiral"""
+        """Generate points for a continuous rectangular spiral inwards"""
         points = []
-        for i in range(turns * 4):  # 4 sides per turn
-            current_inset = (i // 4) * spacing
-            w = width - 2 * current_inset
-            h = height - 2 * current_inset
-            
+        current_x = 0
+        current_y = 0
+        w = width
+        h = height
+        
+        for i in range(turns * 4):
             if w <= 0 or h <= 0:
                 break
                 
-            # Starting point for this rectangle
-            x = current_inset
-            y = current_inset
-            
-            # Add points for this rectangle level
-            points.extend([
-                Point(x, y),           # bottom-left
-                Point(x + w, y),       # bottom-right
-                Point(x + w, y + h),   # top-right
-                Point(x, y + h),       # top-left
-            ])
+            # Each iteration reduces either width or height and moves inward
+            if i % 4 == 0:  # bottom edge, moving right
+                points.append(Point(current_x, current_y))
+                current_x += w
+            elif i % 4 == 1:  # right edge, moving up
+                points.append(Point(current_x, current_y))
+                current_y += h
+            elif i % 4 == 2:  # top edge, moving left
+                points.append(Point(current_x, current_y))
+                current_x -= w
+            else:  # left edge, moving down
+                points.append(Point(current_x, current_y))
+                current_y -= h
+                # After completing a full rectangle, move inward
+                current_x += spacing
+                current_y += spacing
+                w -= 2 * spacing
+                h -= 2 * spacing
             
         return points
 
