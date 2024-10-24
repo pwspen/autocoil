@@ -301,6 +301,7 @@ if __name__ == "__main__":
     spacing = 1
     turns = 10
     corner_radius = 2.0
+    trace_width = 0.2  # Added configurable trace width
     
     # Generate rectangular spiral points
     spiral_points = OutlineShape.generate_rectangular_spiral(width, height, spacing, turns)
@@ -318,6 +319,11 @@ if __name__ == "__main__":
     plt.title('Rounded Rectangular Spiral Points')
     plt.show()
     
+    # Offset the final point by 2*trace_spacing
+    final_point = rounded_points[-1]
+    offset_final = Point(final_point.x + 2*spacing, final_point.y)
+    rounded_points[-1] = offset_final
+
     # Convert to format expected by create_antenna_spiral
     pts = [[p.x, p.y] for p in rounded_points]
-    create_antenna_spiral("mycoil/mycoil.kicad_pcb", pts, mode="trace")
+    create_antenna_spiral("mycoil/mycoil.kicad_pcb", pts, mode="trace", width=trace_width)
