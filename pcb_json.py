@@ -316,8 +316,15 @@ if __name__ == "__main__":
     spacing = 0.2
     turns = 50
     corner_radius = 1.0
-    trace_width = 0.1  # Added configurable trace width
+    trace_width = 0.1
     num_layers = 6
+    
+    # Parameters for radial array
+    num_copies = 4
+    center_x = -50
+    center_y = 0
+    start_angle = 0
+    spacing_angle = 90
     # Generate coil stack template
     coil_stack = generate_coil_stack(
         width=width,

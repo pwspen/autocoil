@@ -394,42 +394,9 @@ def create_radial_array(coil_stack: CoilStack, num_copies: int,
             width=coil_stack.width,
             height=coil_stack.height
         ))
-            # Extract points from main section
-            points_matches = re.finditer(r'\((?:start|end|xy|at) (-?\d+\.?\d*) (-?\d+\.?\d*)\)', 
-                                       main_section + via_sections)
-            
-            # Transform points
-            transformed_text = main_section + via_sections
-            for match in points_matches:
-                x, y = float(match.group(1)), float(match.group(2))
-                new_x, new_y = transform_point((x, y), center_x, center_y, angle_rad)
-                transformed_text = transformed_text.replace(
-                    f"({match.group(1)} {match.group(2)})",
-                    f"({new_x:.6f} {new_y:.6f})"
-                )
-            
-            # Generate new UUIDs
-            new_uuids = [str(uuid.uuid4()) for _ in member_uuids]
-            for old_uuid, new_uuid in zip(member_uuids, new_uuids):
-                transformed_text = transformed_text.replace(old_uuid, new_uuid)
-            
-            # Split back into main and via sections
-            split_idx = transformed_text.find("(via")
-            if split_idx == -1:
-                new_main = transformed_text
-                new_vias = ""
-            else:
-                new_main = transformed_text[:split_idx]
-                new_vias = transformed_text[split_idx:]
-            
-            # Create new group section with layer name
-            layer_match = re.search(r'layer "([^"]+)"', new_main)
-            layer_name = layer_match.group(1) if layer_match else "Unknown"
-            new_group = create_group_section(new_uuids, name=f"Coil Layer {layer_name}")
-            print('new uuids', new_uuids)
-            all_sections.append((new_main, new_vias, new_group, new_uuids))
+            # This section is no longer needed since we're using the dataclass approach
     
-    return all_sections
+    return transformed_stacks
 
 def write_coils_to_file(filename, coil_sections, stack_name="Coil Stack"):
     """
