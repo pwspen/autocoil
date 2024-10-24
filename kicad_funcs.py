@@ -84,7 +84,7 @@ def create_trace(start_point, end_point, width=0.2):
     
     return trace_section, trace_uuid
 
-def create_antenna_spiral(filename, all_points, mode="polygon", trace_width=0.2, via_points=None):
+def create_antenna_spiral(filename, all_points, mode="polygon", trace_width=0.2, via_points=None, flipped=False):
     """
     Updates a KiCad PCB file with either a polygon or trace-based antenna pattern and vias.
     
@@ -95,6 +95,9 @@ def create_antenna_spiral(filename, all_points, mode="polygon", trace_width=0.2,
         via_points (list): Optional list of (x, y) coordinates for via placement
     """
     
+    if flipped:
+        # Flip all points and via points across y axis.
+
     # Generate UUID for the main element
     main_uuid = str(uuid.uuid4())
     
