@@ -80,38 +80,54 @@ class Line:
         y = (a1 * c2 - a2 * c1) / determinant
         return Point(x, y)
 
-def create_arc(line1: Line, line2: Line, radius: float, ax=None) -> List[Point]:
+def create_arc(line1: Line, line2: Line, radius: float, ax=None, debug=False) -> List[Point]:
     """
     Creates an arc tangent to both lines with specified radius.
     Returns list of points approximating the arc.
     If ax is provided, visualizes construction process.
     """
-    if ax:
-        # Plot original lines
-        line1.plot(ax, color='black', label='Original lines')
-        line2.plot(ax, color='black')
+    # Find intersection of original lines
+    corner = line1.intersect(line2)
+    if corner is None:
+        return []  # Lines are parallel
         
     # Create offset lines
     offset_line1 = line1.offset(radius)
     offset_line2 = line2.offset(radius)
     
-    if ax:
-        # Plot offset lines
-        offset_line1.plot(ax, color='red', alpha=0.5, linestyle='--', label='Offset lines')
-        offset_line2.plot(ax, color='red', alpha=0.5, linestyle='--')
-    
     # Find center point at intersection of offset lines
     center = offset_line1.intersect(offset_line2)
     if center is None:
-        return []  # Lines are parallel, can't create arc
+        return []  # Lines are parallel
         
-    if ax:
-        # Plot center point
-        ax.plot(center.x, center.y, 'go', label='Arc center')
+    # Calculate tangent points
+    dir1 = line1.direction
+    dir2 = line2.direction
     
-    # Calculate start and end angles
-    start_angle = math.atan2(line1.end.y - center.y, line1.end.x - center.x)
-    end_angle = math.atan2(line2.start.y - center.y, line2.start.x - center.x)
+    # Tangent points are radius distance from corner along original lines
+    tangent1 = Point(
+        corner.x - dir1.x * radius,
+        corner.y - dir1.y * radius
+    )
+    tangent2 = Point(
+        corner.x + dir2.x * radius,
+        corner.y + dir2.y * radius
+    )
+    
+    # Calculate angles from center to tangent points
+    start_angle = math.atan2(tangent1.y - center.y, tangent1.x - center.x)
+    end_angle = math.atan2(tangent2.y - center.y, tangent2.x - center.x)
+    
+    if debug and ax:
+        # Plot construction elements
+        line1.plot(ax, color='black', label='Original lines')
+        line2.plot(ax, color='black')
+        offset_line1.plot(ax, color='red', alpha=0.5, linestyle='--', label='Offset lines')
+        offset_line2.plot(ax, color='red', alpha=0.5, linestyle='--')
+        ax.plot(center.x, center.y, 'go', label='Arc center')
+        ax.plot(corner.x, corner.y, 'ro', label='Corner point')
+        ax.plot(tangent1.x, tangent1.y, 'mo', label='Tangent points')
+        ax.plot(tangent2.x, tangent2.y, 'mo')
     
     # Generate arc points
     points = []
@@ -132,11 +148,11 @@ def create_arc(line1: Line, line2: Line, radius: float, ax=None) -> List[Point]:
             # Plot arc segments
             prev = points[i-1]
             ax.plot([prev.x, point.x], [prev.y, point.y], 'b-', alpha=0.8)
-            
-    if ax:
-        # Draw radius lines to start and end points
-        ax.plot([center.x, points[0].x], [center.y, points[0].y], 'g--', alpha=0.5, label='Radius')
-        ax.plot([center.x, points[-1].x], [center.y, points[-1].y], 'g--', alpha=0.5)
+    
+    if debug and ax:
+        # Draw radius lines to tangent points
+        ax.plot([center.x, tangent1.x], [center.y, tangent1.y], 'g--', alpha=0.5, label='Radius')
+        ax.plot([center.x, tangent2.x], [center.y, tangent2.y], 'g--', alpha=0.5)
         ax.legend()
         ax.axis('equal')
     
@@ -237,7 +253,7 @@ if __name__ == "__main__":
         line2 = Line(p2, p3)
         
         # Add arc points with visualization
-        arc_points = create_arc(line1, line2, radius, ax=ax)
+        arc_points = create_arc(line1, line2, radius, ax=ax, debug=True)
         outline_points.extend(arc_points)
     
     plt.tight_layout()
