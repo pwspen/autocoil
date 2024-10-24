@@ -278,7 +278,7 @@ if __name__ == "__main__":
     width = 50
     height = 25
     spacing = 5
-    turns = 2
+    turns = 5
     corner_radius = 2.0
     
     # Generate rectangular spiral points
