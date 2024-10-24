@@ -348,7 +348,9 @@ if __name__ == "__main__":
     
     # Generate KiCAD sections for each stack
     all_coil_sections = []
-    for stack in coil_stacks:
+    stack_uuids = []
+    for stack, stack_uuid in coil_stacks:
+        stack_uuids.append(stack_uuid)
         for section in stack.sections:
             # Convert numpy points to list format
             pts = section.points
@@ -364,13 +366,7 @@ if __name__ == "__main__":
             )
             all_coil_sections.append((main_section, via_section, group_section, member_uuids))
     
-    # Create a stack group for all coils
-    all_member_uuids = []
-    for _, _, _, member_uuids in all_coil_sections:
-        all_member_uuids.extend(member_uuids)
-    
-    stack_group = create_stack_group(all_member_uuids, name="Multi-Layer Coil Array")
-    
-    # Write all coils and stack group to file
-    write_coils_to_file("mycoil/mycoil.kicad_pcb", all_coil_sections, stack_name="Multi-Layer Coil Array")
+    # Write all coils and stack groups to file
+    write_coils_to_file("mycoil/mycoil.kicad_pcb", all_coil_sections, stack_uuids, 
+                       stack_name="Multi-Layer Coil Array")
     print('Saved to file')
