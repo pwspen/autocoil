@@ -60,6 +60,31 @@ def create_group_section(member_uuids):
     
     return group_section
 
+def create_trace(start_point, end_point, width=0.2):
+    """
+    Create a KiCad PCB trace segment between two points.
+    
+    Args:
+        start_point (tuple): (x, y) coordinates of trace start
+        end_point (tuple): (x, y) coordinates of trace end
+        width (float): Width of the trace in mm
+    
+    Returns:
+        tuple: (trace_section, uuid) - The formatted trace text and its UUID
+    """
+    trace_uuid = str(uuid.uuid4())
+    
+    trace_section = f'''(segment
+		(start {start_point[0]} {start_point[1]})
+		(end {end_point[0]} {end_point[1]})
+		(width {width})
+		(layer "F.Cu")
+		(net 0)
+		(uuid "{trace_uuid}")
+	)'''
+    
+    return trace_section, trace_uuid
+
 def create_antenna_spiral(filename, all_points, mode="polygon", via_points=None, show_plot=True):
     """
     Updates a KiCad PCB file with either a polygon or trace-based antenna pattern and vias.
