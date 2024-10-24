@@ -364,5 +364,12 @@ if __name__ == "__main__":
         )
         add_vias = []
 
-    # Write all coils to file with a named stack group
+    # Create a stack group for all coils
+    all_member_uuids = []
+    for _, _, _, member_uuids in coil_sections:
+        all_member_uuids.extend(member_uuids)
+    
+    stack_group = create_stack_group(all_member_uuids, name="Multi-Layer Coil Stack")
+    
+    # Write all coils and stack group to file
     write_coils_to_file("mycoil/mycoil.kicad_pcb", coil_sections, stack_name="Multi-Layer Coil Stack")
