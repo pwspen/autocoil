@@ -131,8 +131,9 @@ def create_antenna_spiral(all_points, mode="polygon", trace_width=0.2, via_point
     # Generate UUID for the main element
     main_uuid = str(uuid.uuid4())
     
-    # Initialize member_uuids list
-    member_uuids = []
+    # Create a single UUID for the entire coil group
+    coil_group_uuid = str(uuid.uuid4())
+    member_uuids = [coil_group_uuid]
     
     if mode == "polygon":
         # Generate the points section string for polygon
@@ -149,28 +150,23 @@ def create_antenna_spiral(all_points, mode="polygon", trace_width=0.2, via_point
             )
             (fill solid)
             (layer "{layer}")
-            (uuid "{main_uuid}")
+            (uuid "{coil_group_uuid}")
         )'''
-        member_uuids.append(main_uuid)
     else:  # trace mode
         # Create traces between consecutive points
         trace_sections = []
-        trace_uuids = []
         for i in range(len(all_points)-1):
             start = all_points[i]
             end = all_points[i+1]
-            trace_section, trace_uuid = create_trace(start, end, width=trace_width, layer=layer)
+            trace_section, _ = create_trace(start, end, width=trace_width, layer=layer)
             trace_sections.append(trace_section)
-            trace_uuids.append(trace_uuid)
         main_section = "\n".join(trace_sections)
-        member_uuids.extend(trace_uuids)
 
     # Generate via sections if via points were provided
     via_sections = ""
     if via_points:
-        via_text, via_uuids = create_via_section(via_points)
+        via_text, _ = create_via_section(via_points)
         via_sections = via_text
-        member_uuids.extend(via_uuids)
 
     # Create the group section
     group_section = create_group_section(member_uuids)
