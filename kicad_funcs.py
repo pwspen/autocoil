@@ -181,7 +181,7 @@ def generate_coil_stack(width: float, height: float, spacing: float, turns: int,
             layer_pts = np.vstack([via_connect_pt, layer_pts])
             
             if i % 2 == 0:
-                add_vias = np.vstack([add_vias, via_connect_pt])
+                add_vias = via_connect_pt if add_vias.size == 0 else np.vstack([add_vias, via_connect_pt])
         
         # Flip points if needed
         if (i + 1) % 2 == 0:  # flip_y
