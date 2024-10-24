@@ -5,7 +5,7 @@ import uuid
 import math
 from dataclasses import dataclass
 from typing import Tuple, List
-from kicad_funcs import create_antenna_spiral
+from kicad_funcs import create_antenna_spiral, write_coils_to_file
 
 
 @dataclass
@@ -294,58 +294,77 @@ def round_corners(points: List[Point], radius: float, debug: bool = False) -> Li
         
     return rounded_points
 
+def plot(pts):
+        plt.figure(figsize=(10, 10))
+        x_coords = [p[0] for p in pts]
+        y_coords = [p[1] for p in pts]
+        plt.plot(x_coords, y_coords, 'bo', alpha=0.5)  # Removed the '-' to not show lines
+        plt.axis('equal')
+        plt.grid(True)
+        plt.title('Rounded Rectangular Spiral Points')
+        plt.show()
+
 if __name__ == "__main__":
     # Parameters for the spiral
     width = 80
     height = 25
     spacing = 0.2
     turns = 50
-    corner_radius = 2.0
+    corner_radius = 1.0
     trace_width = 0.1  # Added configurable trace width
     
     # Generate rectangular spiral points
     spiral_points = OutlineShape.generate_rectangular_spiral(width, height, spacing, turns)
     
-    # Round all corners
-    rounded_points = round_corners(spiral_points, corner_radius, debug=False)
-    
-    final_point = rounded_points[-1]
-    offset_final = Point(width*0.5, final_point.y) # Force final point to be at midway of coil
-    rounded_points[-1] = offset_final
-
-    # Convert to format expected by create_antenna_spiral
-    pts = [[p.x, p.y] for p in rounded_points]
-
-    plt.figure(figsize=(10, 10))
-    x_coords = [p[0] for p in pts]
-    y_coords = [p[1] for p in pts]
-    plt.plot(x_coords, y_coords, 'bo', alpha=0.5)  # Removed the '-' to not show lines
-    plt.axis('equal')
-    plt.grid(True)
-    plt.title('Rounded Rectangular Spiral Points')
-    plt.show()
-
-    layers = 4
-    via_count = layers - 1
+    num_layers = 4
+    via_count = num_layers // 2
     via_spacing = (width - (2*turns*spacing)) / (via_count + 1)
     via_start = turns*spacing
     vias = [(via_start + i*via_spacing, height*0.5) for i in range(1, via_count + 1)]
 
-    # Generate coils for each layer
     coil_sections = []
-    
-    # Front copper layer
-    coil_sections.append(
-        create_antenna_spiral(pts, mode="trace", trace_width=trace_width, 
-                            via_points=vias, flip_x=False, flip_y=False, layer="F.Cu")
-    )
-    
-    # Back copper layer
-    coil_sections.append(
-        create_antenna_spiral(pts, mode="trace", trace_width=trace_width,
-                            via_points=vias, flip_x=True, flip_y=True, layer="B.Cu")
-    )
-    
+    for i in range(num_layers):
+        if i == 0:
+            layer = "F.Cu"
+        elif i == num_layers - 1:
+            layer = "B.Cu"
+        else:
+            layer = f"In{i}.Cu"
+
+        via = vias[i // 2]
+
+        orig_final_pt = spiral_points[-1]
+        layer_pts = spiral_points[:-1]
+
+        corner_pt = Point(via[0], orig_final_pt.y)
+        final_pt = Point(via[0], via[1])
+
+        layer_pts.append(corner_pt)
+        layer_pts.append(final_pt)
+
+        if "In" in layer:
+            # Make room for via
+            orig_initial_pt = spiral_points[0]
+            new_initial_pt = Point(orig_initial_pt.x - spacing, orig_initial_pt.y)
+            spiral_points[0] = new_initial_pt
+
+            # Add point to connect to via
+            via_connect_pt = Point(new_initial_pt.x, height*0.5)
+            layer_pts.insert(0, via_connect_pt)
+
+            # Add via point
+            if i % 2 == 0:
+                vias.append((via_connect_pt.x, via_connect_pt.y))
+
+        rounded_points = round_corners(layer_pts, corner_radius, debug=False)
+
+        pts = [[p.x, p.y] for p in rounded_points]
+
+        coil_sections.append(
+            create_antenna_spiral(pts, mode="trace", trace_width=trace_width, 
+                                via_points=vias, flip_x=False, flip_y=((i + 1) % 2 == 0), layer=layer)
+        )
+        vias = []
+
     # Write all coils to file
     write_coils_to_file("mycoil/mycoil.kicad_pcb", coil_sections)
-
