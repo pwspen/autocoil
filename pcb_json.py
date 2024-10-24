@@ -235,8 +235,12 @@ def round_corners(points: List[Point], radius: float, debug: bool = False) -> Li
     axes = None
     
     if debug:
-        fig, axes = plt.subplots(2, 2, figsize=(15, 10))
-        axes = axes.flatten()
+        # Calculate number of rows/columns needed for subplots
+        n_corners = len(points)
+        n_rows = int(np.ceil(np.sqrt(n_corners)))
+        n_cols = int(np.ceil(n_corners / n_rows))
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 5*n_rows))
+        axes = axes.flatten() if isinstance(axes, np.ndarray) else [axes]
     
     for i in range(len(points)):
         p1 = points[i]
