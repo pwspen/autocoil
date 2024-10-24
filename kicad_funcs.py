@@ -85,7 +85,7 @@ def create_trace(start_point, end_point, width=0.2):
     
     return trace_section, trace_uuid
 
-def create_antenna_spiral(filename, all_points, mode="polygon", via_points=None, show_plot=True):
+def create_antenna_spiral(filename, all_points, mode="polygon", trace_width=0.2, via_points=None, show_plot=True):
     """
     Updates a KiCad PCB file with either a polygon or trace-based antenna pattern and vias.
     
@@ -127,7 +127,7 @@ def create_antenna_spiral(filename, all_points, mode="polygon", via_points=None,
         for i in range(len(all_points)-1):
             start = all_points[i]
             end = all_points[i+1]
-            trace_section, trace_uuid = create_trace(start, end)
+            trace_section, trace_uuid = create_trace(start, end, width=trace_width)
             trace_sections.append(trace_section)
             trace_uuids.append(trace_uuid)
         main_section = "\n".join(trace_sections)
