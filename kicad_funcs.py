@@ -95,11 +95,15 @@ def create_antenna_spiral(filename, all_points, mode="polygon", via_points=None,
     else:  # trace mode
         # Create traces between consecutive points
         trace_sections = []
+        trace_uuids = []
         for i in range(len(all_points)-1):
             start = all_points[i]
             end = all_points[i+1]
-            trace_sections.append(create_trace(start, end))
+            trace_section, trace_uuid = create_trace(start, end)
+            trace_sections.append(trace_section)
+            trace_uuids.append(trace_uuid)
         main_section = "\n".join(trace_sections)
+        member_uuids.extend(trace_uuids)
 
     # Generate via sections if via points were provided
     via_sections = ""
@@ -120,7 +124,7 @@ def create_antenna_spiral(filename, all_points, mode="polygon", via_points=None,
     last_paren_index = pcb_content.rindex(')')
     
     # Combine all new sections
-    new_content = f"{poly_section}\n\t{via_sections}\n\t{group_section}\n)"
+    new_content = f"{main_section}\n\t{via_sections}\n\t{group_section}\n)"
     
     # Insert the new content
     updated_content = pcb_content[:last_paren_index] + new_content
