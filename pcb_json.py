@@ -201,35 +201,33 @@ class OutlineShape:
         return OutlineShape(new_points)
 
     def generate_rectangular_spiral(width: float, height: float, spacing: float, turns: int) -> List[Point]:
-        """Generate points for a continuous rectangular spiral inwards"""
+        """Generate points for a continuous rectangular spiral inwards with only horizontal and vertical lines"""
         points = []
-        current_x = 0
-        current_y = 0
+        x_start = 0
+        y_start = 0
         w = width
         h = height
         
-        for i in range(turns * 4):
+        for turn in range(turns):
             if w <= 0 or h <= 0:
                 break
                 
-            # Each iteration reduces either width or height and moves inward
-            if i % 4 == 0:  # bottom edge, moving right
-                points.append(Point(current_x, current_y))
-                current_x += w
-            elif i % 4 == 1:  # right edge, moving up
-                points.append(Point(current_x, current_y))
-                current_y += h
-            elif i % 4 == 2:  # top edge, moving left
-                points.append(Point(current_x, current_y))
-                current_x -= w
-            else:  # left edge, moving down
-                points.append(Point(current_x, current_y))
-                current_y -= h
-                # After completing a full rectangle, move inward
-                current_x += spacing
-                current_y += spacing
-                w -= 2 * spacing
-                h -= 2 * spacing
+            # Bottom edge (left to right)
+            points.append(Point(x_start, y_start))
+            points.append(Point(x_start + w, y_start))
+            
+            # Right edge (bottom to top)
+            points.append(Point(x_start + w, y_start + h))
+            
+            # Top edge (right to left)
+            points.append(Point(x_start, y_start + h))
+            
+            # Left edge (top to bottom, but stop at new start point)
+            x_start += spacing
+            y_start += spacing
+            w -= 2 * spacing
+            h -= 2 * spacing
+            points.append(Point(x_start, y_start))
             
         return points
 
