@@ -318,17 +318,30 @@ if __name__ == "__main__":
     corner_radius = 1.0
     trace_width = 0.1  # Added configurable trace width
     num_layers = 6
-    # Generate rectangular spiral points
-    spiral_points = OutlineShape.generate_rectangular_spiral(width, height, spacing, turns)
+    # Generate coil stack template
+    coil_stack = generate_coil_stack(
+        width=width,
+        height=height,
+        spacing=spacing,
+        turns=turns,
+        num_layers=num_layers,
+        trace_width=trace_width
+    )
     
-    via_count = num_layers // 2
-    via_spacing = 3.5*spacing
-    via_start = turns*spacing
-    vias = [(via_start + i*via_spacing, height*0.5) for i in range(1, via_count + 1)]
-
-    coil_sections = []
-    add_vias = vias.copy()
-    for i in range(num_layers):
+    # Create radial array
+    coil_stacks = create_radial_array(
+        coil_stack=coil_stack,
+        num_copies=num_copies,
+        center_x=center_x,
+        center_y=center_y,
+        start_angle=start_angle,
+        spacing_angle=spacing_angle
+    )
+    
+    # Generate KiCAD sections for each stack
+    all_coil_sections = []
+    for stack in coil_stacks:
+        for section in stack.sections:
         if i == 0:
             layer = "F.Cu"
         elif i == num_layers - 1:

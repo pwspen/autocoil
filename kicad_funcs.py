@@ -2,6 +2,27 @@ import numpy as np
 import re
 import uuid
 import math
+from dataclasses import dataclass
+from typing import List, Optional, Tuple
+from enum import Enum
+
+class CoilMode(Enum):
+    POLYGON = "polygon"
+    TRACE = "trace"
+
+@dataclass
+class CoilSection:
+    points: np.ndarray  # Nx2 array of points
+    via_points: Optional[np.ndarray]  # Mx2 array of via points
+    mode: CoilMode
+    trace_width: float
+    layer: str
+    
+@dataclass
+class CoilStack:
+    sections: List[CoilSection]
+    width: float
+    height: float
 
 def create_via_section(via_points):
     """
@@ -85,6 +106,99 @@ def create_trace(start_point, end_point, width=0.2, layer="F.Cu"):
 	)'''
     
     return trace_section, trace_uuid
+
+def generate_coil_stack(width: float, height: float, spacing: float, turns: int, 
+                       num_layers: int, trace_width: float = 0.2) -> CoilStack:
+    """
+    Generate a complete coil stack template without UUIDs.
+    
+    Args:
+        width: Width of the coil
+        height: Height of the coil
+        spacing: Spacing between turns
+        turns: Number of turns
+        num_layers: Number of layers in the stack
+        trace_width: Width of traces
+        
+    Returns:
+        CoilStack object containing all sections
+    """
+    # Generate base spiral points using numpy
+    spiral_points = []
+    x_start = 0
+    y_start = 0
+    w = width
+    h = height
+    
+    for turn in range(turns):
+        if w <= 0 or h <= 0:
+            break
+            
+        spiral_points.extend([
+            [x_start, y_start],
+            [x_start + w, y_start],
+            [x_start + w, y_start + h],
+            [x_start + spacing, y_start + h]
+        ])
+        
+        x_start += spacing
+        y_start += spacing
+        w -= 2 * spacing
+        h -= 2 * spacing
+    
+    spiral_points = np.array(spiral_points)
+    
+    # Calculate via positions
+    via_count = num_layers // 2
+    via_spacing = 3.5 * spacing
+    via_start = turns * spacing
+    vias = np.array([(via_start + i*via_spacing, height*0.5) for i in range(1, via_count + 1)])
+    
+    # Generate sections for each layer
+    sections = []
+    add_vias = vias.copy()
+    
+    for i in range(num_layers):
+        if i == 0:
+            layer = "F.Cu"
+        elif i == num_layers - 1:
+            layer = "B.Cu"
+        else:
+            layer = f"In{i}.Cu"
+            
+        # Create layer points
+        layer_pts = spiral_points.copy()
+        via = vias[i // 2]
+        
+        # Add connection to via
+        corner_pt = np.array([[via[0], layer_pts[-1][1]]])
+        final_pt = np.array([[via[0], via[1]]])
+        layer_pts = np.vstack([layer_pts[:-1], corner_pt, final_pt])
+        
+        if "In" in layer:
+            # Make room for via
+            via_connect_pt = np.array([[layer_pts[0][0] - (spacing*1.25 + via_spacing*((i-1) // 2)), height*0.5]])
+            layer_pts = np.vstack([via_connect_pt, layer_pts])
+            
+            if i % 2 == 0:
+                add_vias = np.vstack([add_vias, via_connect_pt])
+        
+        # Flip points if needed
+        if (i + 1) % 2 == 0:  # flip_y
+            layer_pts[:, 1] = -layer_pts[:, 1] + height
+            if add_vias.size > 0:
+                add_vias[:, 1] = -add_vias[:, 1] + height
+                
+        sections.append(CoilSection(
+            points=layer_pts,
+            via_points=add_vias if add_vias.size > 0 else None,
+            mode=CoilMode.TRACE,
+            trace_width=trace_width,
+            layer=layer
+        ))
+        add_vias = np.array([])
+        
+    return CoilStack(sections=sections, width=width, height=height)
 
 def create_antenna_spiral(all_points, mode="polygon", trace_width=0.2, via_points=None, flip_x=False, flip_y=False, layer="F.Cu"):
     """
@@ -236,7 +350,9 @@ def transform_points(points, center_x, center_y, angle_rad):
     """Transform a list of points around a center by given angle"""
     return [transform_point(p, center_x, center_y, angle_rad) for p in points]
 
-def create_radial_array(coil_sections, num_copies, center_x, center_y, start_angle_deg=0, spacing_deg=45):
+def create_radial_array(coil_stack: CoilStack, num_copies: int, 
+                       center_x: float, center_y: float, 
+                       start_angle_deg: float = 0, spacing_deg: float = 45) -> List[CoilStack]:
     """
     Create a radial array of coil stacks.
     
