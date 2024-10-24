@@ -96,7 +96,10 @@ def create_antenna_spiral(filename, all_points, mode="polygon", trace_width=0.2,
     """
     
     if flipped:
-        # Flip all points and via points across y axis.
+        # Flip all points across y axis by negating x coordinates
+        all_points = [(-x, y) for x, y in all_points]
+        if via_points:
+            via_points = [(-x, y) for x, y in via_points]
 
     # Generate UUID for the main element
     main_uuid = str(uuid.uuid4())
