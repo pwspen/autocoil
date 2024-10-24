@@ -295,18 +295,18 @@ if __name__ == "__main__":
     # Generate rectangular spiral points
     spiral_points = OutlineShape.generate_rectangular_spiral(width, height, spacing, turns)
     
-    # Plot just the points
-    plt.figure(figsize=(10, 10))
-    x_coords = [p.x for p in spiral_points]
-    y_coords = [p.y for p in spiral_points]
-    plt.plot(x_coords, y_coords, 'bo-', alpha=0.5)
-    plt.axis('equal')
-    plt.grid(True)
-    plt.title('Rectangular Spiral Points')
-    plt.show()
-    
     # Round all corners
     rounded_points = round_corners(spiral_points, corner_radius, debug=False)
+    
+    # Plot just the points of the final rounded result
+    plt.figure(figsize=(10, 10))
+    x_coords = [p.x for p in rounded_points]
+    y_coords = [p.y for p in rounded_points]
+    plt.plot(x_coords, y_coords, 'bo', alpha=0.5)  # Removed the '-' to not show lines
+    plt.axis('equal')
+    plt.grid(True)
+    plt.title('Rounded Rectangular Spiral Points')
+    plt.show()
     
     # Convert to format expected by create_antenna_spiral
     pts = [[p.x, p.y] for p in rounded_points]
