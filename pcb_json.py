@@ -91,20 +91,30 @@ def create_arc(line1: Line, line2: Line, radius: float, ax=None, debug=False) ->
     if corner is None:
         return []  # Lines are parallel
         
-    # Create offset lines
-    offset_line1 = line1.offset(radius)
-    offset_line2 = line2.offset(radius)
+    # Get perpendicular vectors at corner point
+    perp1 = line1.perpendicular(corner)
+    perp2 = line2.perpendicular(corner)
     
-    # Find center point at intersection of offset lines
-    center = offset_line1.intersect(offset_line2)
-    if center is None:
-        return []  # Lines are parallel
-        
-    # Calculate tangent points
+    # Create perpendicular lines from corner point
+    perp_line1 = Line(corner, Point(corner.x + perp1.x, corner.y + perp1.y))
+    perp_line2 = Line(corner, Point(corner.x + perp2.x, corner.y + perp2.y))
+    
+    # Calculate center point
     dir1 = line1.direction
     dir2 = line2.direction
+    angle_between = math.acos(dir1.x * dir2.x + dir1.y * dir2.y)
+    center_distance = radius / math.sin(angle_between / 2)
     
-    # Tangent points are radius distance from corner along original lines
+    # Center is along the bisector of the angle
+    bisector_x = (perp1.x + perp2.x) / 2
+    bisector_y = (perp1.y + perp2.y) / 2
+    bisector_length = math.sqrt(bisector_x * bisector_x + bisector_y * bisector_y)
+    center = Point(
+        corner.x + (bisector_x / bisector_length) * center_distance,
+        corner.y + (bisector_y / bisector_length) * center_distance
+    )
+    
+    # Calculate tangent points
     tangent1 = Point(
         corner.x - dir1.x * radius,
         corner.y - dir1.y * radius
@@ -135,8 +145,9 @@ def create_arc(line1: Line, line2: Line, radius: float, ax=None, debug=False) ->
     if end_angle < start_angle:
         end_angle += 2 * math.pi
     
-    for i in range(steps + 1):
-        t = i / steps
+    # Include both start and end points
+    for i in range(steps):  # Changed from steps + 1 to steps
+        t = i / (steps - 1)  # Changed from steps to steps - 1
         angle = start_angle * (1-t) + end_angle * t
         point = Point(
             center.x + radius * math.cos(angle),
