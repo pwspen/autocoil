@@ -2,7 +2,6 @@ import numpy as np
 import re
 import uuid
 import math
-import matplotlib.pyplot as plt
 
 def create_via_section(via_points):
     """
@@ -85,7 +84,7 @@ def create_trace(start_point, end_point, width=0.2):
     
     return trace_section, trace_uuid
 
-def create_antenna_spiral(filename, all_points, mode="polygon", trace_width=0.2, via_points=None, show_plot=True):
+def create_antenna_spiral(filename, all_points, mode="polygon", trace_width=0.2, via_points=None):
     """
     Updates a KiCad PCB file with either a polygon or trace-based antenna pattern and vias.
     
@@ -94,7 +93,6 @@ def create_antenna_spiral(filename, all_points, mode="polygon", trace_width=0.2,
         all_points (list): List of (x,y) coordinates defining the antenna shape
         mode (str): Either "polygon" or "trace" to determine how the antenna is created
         via_points (list): Optional list of (x, y) coordinates for via placement
-        show_plot (bool): Whether to display the matplotlib preview
     """
     
     # Generate UUID for the main element
@@ -161,24 +159,3 @@ def create_antenna_spiral(filename, all_points, mode="polygon", trace_width=0.2,
     # Write the updated content back to the file
     with open(filename, 'w') as f:
         f.write(updated_content)
-    
-    if show_plot:
-        plt.figure(figsize=(10, 10))
-        
-        # Plot antenna trace
-        points_array = np.array(all_points)
-        plt.plot(points_array[:, 0], points_array[:, 1], 'b-', linewidth=2)
-        
-        # Plot vias if they exist
-        if via_points:
-            via_points_array = np.array(via_points)
-            plt.plot(via_points_array[:, 0], via_points_array[:, 1], 'rx', markersize=8, 
-                    label='Vias')
-        
-        plt.axis('equal')
-        plt.grid(True, linestyle='--', alpha=0.6)
-        plt.xlabel('X axis')
-        plt.ylabel('Y axis')
-        if via_points:
-            plt.legend()
-        plt.show()
