@@ -364,5 +364,5 @@ if __name__ == "__main__":
         )
         add_vias = []
 
-    # Write all coils to file
-    write_coils_to_file("mycoil/mycoil.kicad_pcb", coil_sections)
+    # Write all coils to file with a named stack group
+    write_coils_to_file("mycoil/mycoil.kicad_pcb", coil_sections, stack_name="Multi-Layer Coil Stack")

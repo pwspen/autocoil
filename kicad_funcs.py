@@ -177,13 +177,42 @@ def create_antenna_spiral(all_points, mode="polygon", trace_width=0.2, via_point
     
     return main_section, via_sections, group_section, member_uuids
 
-def write_coils_to_file(filename, coil_sections):
+def create_stack_group(member_uuids, name="Coil Stack"):
+    """
+    Create a KiCad PCB group section for a stack of coils.
+    
+    Args:
+        member_uuids (list): List of all UUIDs to include in the group
+        name (str): Name for the group
+        
+    Returns:
+        str: Formatted group section text
+    """
+    # Format member UUIDs with at most 2 per line
+    members_text = []
+    for i in range(0, len(member_uuids), 2):
+        chunk = member_uuids[i:i + 2]
+        members_text.append(f'\t\t{" ".join(f""""{uuid}" """ for uuid in chunk)}')
+    
+    group_uuid = str(uuid.uuid4())
+    
+    group_section = f'''(group "{name}"
+		(uuid "{group_uuid}")
+		(members
+{"".join(members_text)}
+		)
+	)'''
+    
+    return group_section
+
+def write_coils_to_file(filename, coil_sections, stack_name="Coil Stack"):
     """
     Writes multiple coil sections to a KiCad PCB file.
     
     Args:
         filename (str): KiCad PCB filename
-        coil_sections (list): List of (main_section, via_sections, group_section) tuples
+        coil_sections (list): List of (main_section, via_sections, group_section, member_uuids) tuples
+        stack_name (str): Name for the stack group
     """
     # Read the KiCad PCB file
     with open(filename, 'r') as f:
@@ -194,8 +223,15 @@ def write_coils_to_file(filename, coil_sections):
     
     # Combine all sections from all coils
     new_content = []
-    for main_section, via_sections, group_section, _ in coil_sections:
+    all_member_uuids = []
+    
+    for main_section, via_sections, group_section, member_uuids in coil_sections:
         new_content.extend([main_section, via_sections, group_section])
+        all_member_uuids.extend(member_uuids)
+    
+    # Create a group for the entire stack
+    stack_group = create_stack_group(all_member_uuids, name=stack_name)
+    new_content.append(stack_group)
     
     # Join all sections and add final parenthesis
     new_content = "\n\t".join(filter(None, new_content)) + "\n)"
