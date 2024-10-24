@@ -5,6 +5,8 @@ import uuid
 import math
 from dataclasses import dataclass
 from typing import Tuple, List
+from kicad_funcs import create_antenna_spiral
+
 
 @dataclass
 class Point:
@@ -132,8 +134,6 @@ def create_arc(line1: Line, line2: Line, radius: float, ax=None, debug=False) ->
         # Plot construction elements
         line1.plot(ax, color='black', label='Original lines')
         line2.plot(ax, color='black')
-        offset_line1.plot(ax, color='red', alpha=0.5, linestyle='--', label='Offset lines')
-        offset_line2.plot(ax, color='red', alpha=0.5, linestyle='--')
         ax.plot(center.x, center.y, 'go', label='Arc center')
         ax.plot(corner.x, corner.y, 'ro', label='Corner point')
         ax.plot(tangent1.x, tangent1.y, 'mo', label='Tangent points')
@@ -141,7 +141,7 @@ def create_arc(line1: Line, line2: Line, radius: float, ax=None, debug=False) ->
     
     # Generate arc points
     points = []
-    steps = 16  # Increased for smoother visualization
+    steps = 8  # Increased for smoother visualization
     if end_angle < start_angle:
         end_angle += 2 * math.pi
     
@@ -168,7 +168,6 @@ def create_arc(line1: Line, line2: Line, radius: float, ax=None, debug=False) ->
         ax.axis('equal')
     
     return points
-from kicad_funcs import create_antenna_spiral
 
 class OutlineShape:
     def __init__(self, points: List[Point]):
@@ -284,7 +283,7 @@ def round_corners(points: List[Point], radius: float, debug: bool = False) -> Li
             
         arc_points = create_arc(line1, line2, radius, ax=ax, debug=debug)
         if arc_points:
-            rounded_points.extend(arc_points[:-1])  # Don't include last point of arc
+            rounded_points.extend(arc_points)  # Don't include last point of arc
             
     # Add the final point
     rounded_points.append(points[-1])
