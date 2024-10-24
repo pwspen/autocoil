@@ -54,11 +54,11 @@ class Line:
         )
         return Line(offset_start, offset_end)
         
-    def plot(self, ax, color='blue', alpha=1.0, linestyle='-'):
+    def plot(self, ax, color='blue', alpha=1.0, linestyle='-', label=None):
         """Plot the line on a matplotlib axis"""
         ax.plot([self.start.x, self.end.x], 
                 [self.start.y, self.end.y], 
-                color=color, alpha=alpha, linestyle=linestyle)
+                color=color, alpha=alpha, linestyle=linestyle, label=label)
     
     def intersect(self, other: 'Line') -> Point:
         """Returns intersection point of two lines"""
