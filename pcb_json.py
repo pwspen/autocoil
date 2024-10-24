@@ -40,34 +40,53 @@ class Line:
         """Returns perpendicular vector at given point"""
         dir = self.direction
         return Point(-dir.y, dir.x)
+        
+    def offset(self, distance: float) -> 'Line':
+        """Returns a new line parallel to this one, offset by distance"""
+        perp = self.perpendicular(self.start)
+        offset_start = Point(
+            self.start.x + perp.x * distance,
+            self.start.y + perp.y * distance
+        )
+        offset_end = Point(
+            self.end.x + perp.x * distance,
+            self.end.y + perp.y * distance
+        )
+        return Line(offset_start, offset_end)
+        
+    def intersect(self, other: 'Line') -> Point:
+        """Returns intersection point of two lines"""
+        # Line 1 represented as a1x + b1y = c1
+        a1 = self.end.y - self.start.y
+        b1 = self.start.x - self.end.x
+        c1 = a1 * self.start.x + b1 * self.start.y
+        
+        # Line 2 represented as a2x + b2y = c2
+        a2 = other.end.y - other.start.y
+        b2 = other.start.x - other.end.x
+        c2 = a2 * other.start.x + b2 * other.start.y
+        
+        determinant = a1 * b2 - a2 * b1
+        if abs(determinant) < 1e-10:  # Lines are parallel
+            return None
+            
+        x = (b2 * c1 - b1 * c2) / determinant
+        y = (a1 * c2 - a2 * c1) / determinant
+        return Point(x, y)
 
 def create_arc(line1: Line, line2: Line, radius: float) -> List[Point]:
     """
     Creates an arc tangent to both lines with specified radius.
     Returns list of points approximating the arc.
     """
-    # Get perpendicular vectors
-    perp1 = line1.perpendicular(line1.end)
-    perp2 = line2.perpendicular(line2.start)
+    # Create offset lines
+    offset_line1 = line1.offset(radius)
+    offset_line2 = line2.offset(radius)
     
-    # Center is intersection of offset lines
-    center1 = Point(
-        line1.end.x + perp1.x * radius,
-        line1.end.y + perp1.y * radius
-    )
-    center2 = Point(
-        line2.start.x + perp2.x * radius,
-        line2.start.y + perp2.y * radius
-    )
-    
-    # Calculate arc center
-    dx = center2.x - center1.x
-    dy = center2.y - center1.y
-    dist = math.sqrt(dx*dx + dy*dy)
-    center = Point(
-        center1.x + dx * 0.5,
-        center1.y + dy * 0.5
-    )
+    # Find center point at intersection of offset lines
+    center = offset_line1.intersect(offset_line2)
+    if center is None:
+        return []  # Lines are parallel, can't create arc
     
     # Calculate start and end angles
     start_angle = math.atan2(line1.end.y - center.y, line1.end.x - center.x)
