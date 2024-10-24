@@ -60,44 +60,50 @@ def create_group_section(member_uuids):
     
     return group_section
 
-def create_antenna_spiral(filename, all_points, via_points=None, show_plot=True):
+def create_antenna_spiral(filename, all_points, mode="polygon", via_points=None, show_plot=True):
     """
-    Updates a KiCad PCB file with a rectangular spiral antenna pattern and vias.
+    Updates a KiCad PCB file with either a polygon or trace-based antenna pattern and vias.
     
     Args:
         filename (str): KiCad PCB filename
+        all_points (list): List of (x,y) coordinates defining the antenna shape
+        mode (str): Either "polygon" or "trace" to determine how the antenna is created
         via_points (list): Optional list of (x, y) coordinates for via placement
-        width (float): Overall width of the shape
-        height (float): Overall height of the shape
-        trace_spacing (float): Spacing between spiral turns
-        trace_width (float): Width of the antenna trace
-        turns (int): Number of complete turns in the spiral
         show_plot (bool): Whether to display the matplotlib preview
     """
-
-    # Generate the points section string
-    points_str = '\n\t\t\t'.join(f'(xy {x:.6f} {y:.6f})' for x, y in all_points)
-
-    # Generate UUID for the polygon
-    poly_uuid = str(uuid.uuid4())
-
-    # Create the full polygon section
-    poly_section = f'''(gr_poly
-		(pts
-			{points_str}
-		)
-        (stroke
-            (width 0)
-            (type solid)
-        )
-        (fill solid)
-        (layer "F.Cu")
-		(uuid "{poly_uuid}")
-	)'''
+    
+    # Generate UUID for the main element
+    main_uuid = str(uuid.uuid4())
+    
+    if mode == "polygon":
+        # Generate the points section string for polygon
+        points_str = '\n\t\t\t'.join(f'(xy {x:.6f} {y:.6f})' for x, y in all_points)
+        
+        # Create the full polygon section
+        main_section = f'''(gr_poly
+            (pts
+                {points_str}
+            )
+            (stroke
+                (width 0)
+                (type solid)
+            )
+            (fill solid)
+            (layer "F.Cu")
+            (uuid "{main_uuid}")
+        )'''
+    else:  # trace mode
+        # Create traces between consecutive points
+        trace_sections = []
+        for i in range(len(all_points)-1):
+            start = all_points[i]
+            end = all_points[i+1]
+            trace_sections.append(create_trace(start, end))
+        main_section = "\n".join(trace_sections)
 
     # Generate via sections if via points were provided
     via_sections = ""
-    member_uuids = [poly_uuid]
+    member_uuids = [main_uuid] if mode == "polygon" else []
     if via_points:
         via_text, via_uuids = create_via_section(via_points)
         via_sections = via_text
