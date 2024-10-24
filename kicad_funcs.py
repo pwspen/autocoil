@@ -205,6 +205,92 @@ def create_stack_group(member_uuids, name="Coil Stack"):
     
     return group_section
 
+def transform_point(point, center_x, center_y, angle_rad):
+    """
+    Transform a point around a center point by given angle in radians.
+    
+    Args:
+        point (tuple): (x, y) coordinates to transform
+        center_x (float): X coordinate of rotation center
+        center_y (float): Y coordinate of rotation center
+        angle_rad (float): Rotation angle in radians
+        
+    Returns:
+        tuple: Transformed (x, y) coordinates
+    """
+    # Translate point to origin
+    x = point[0] - center_x
+    y = point[1] - center_y
+    
+    # Rotate
+    cos_theta = math.cos(angle_rad)
+    sin_theta = math.sin(angle_rad)
+    new_x = x * cos_theta - y * sin_theta
+    new_y = x * sin_theta + y * cos_theta
+    
+    # Translate back
+    return (new_x + center_x, new_y + center_y)
+
+def transform_points(points, center_x, center_y, angle_rad):
+    """Transform a list of points around a center by given angle"""
+    return [transform_point(p, center_x, center_y, angle_rad) for p in points]
+
+def create_radial_array(coil_sections, num_copies, center_x, center_y, start_angle_deg=0, spacing_deg=45):
+    """
+    Create a radial array of coil stacks.
+    
+    Args:
+        coil_sections (list): List of (main_section, via_sections, group_section, member_uuids) tuples
+        num_copies (int): Number of copies to create including original
+        center_x (float): X coordinate of rotation center
+        center_y (float): Y coordinate of rotation center
+        start_angle_deg (float): Starting angle in degrees
+        spacing_deg (float): Angular spacing between copies in degrees
+        
+    Returns:
+        list: List of transformed coil sections
+    """
+    all_sections = []
+    
+    for copy_num in range(num_copies):
+        angle_rad = math.radians(start_angle_deg + copy_num * spacing_deg)
+        
+        for main_section, via_sections, group_section, member_uuids in coil_sections:
+            # Extract points from main section
+            points_matches = re.finditer(r'\((?:start|end|xy|at) (-?\d+\.?\d*) (-?\d+\.?\d*)\)', 
+                                       main_section + via_sections)
+            
+            # Transform points
+            transformed_text = main_section + via_sections
+            for match in points_matches:
+                x, y = float(match.group(1)), float(match.group(2))
+                new_x, new_y = transform_point((x, y), center_x, center_y, angle_rad)
+                transformed_text = transformed_text.replace(
+                    f"({match.group(1)} {match.group(2)})",
+                    f"({new_x:.6f} {new_y:.6f})"
+                )
+            
+            # Generate new UUIDs
+            new_uuids = [str(uuid.uuid4()) for _ in member_uuids]
+            for old_uuid, new_uuid in zip(member_uuids, new_uuids):
+                transformed_text = transformed_text.replace(old_uuid, new_uuid)
+            
+            # Split back into main and via sections
+            split_idx = transformed_text.find("(via")
+            if split_idx == -1:
+                new_main = transformed_text
+                new_vias = ""
+            else:
+                new_main = transformed_text[:split_idx]
+                new_vias = transformed_text[split_idx:]
+            
+            # Create new group section
+            new_group = create_group_section(new_uuids)
+            
+            all_sections.append((new_main, new_vias, new_group, new_uuids))
+    
+    return all_sections
+
 def write_coils_to_file(filename, coil_sections, stack_name="Coil Stack"):
     """
     Writes multiple coil sections to a KiCad PCB file.
