@@ -75,7 +75,7 @@ def create_arc(line1: Line, line2: Line, radius: float) -> List[Point]:
     
     # Generate arc points
     points = []
-    steps = 32  # Number of segments to approximate arc
+    steps = 8  # Number of segments to approximate arc
     if end_angle < start_angle:
         end_angle += 2 * math.pi
     
@@ -153,13 +153,6 @@ if __name__ == "__main__":
     turns = 1
     via_points = [(0, 0), (25, 12.5), (50, 25)]  # Example via coordinates
 
-    outline = OutlineShape([
-        Point(0, 0),
-        Point(width, 0),
-        Point(width, height),
-        Point(0, height)
-    ])
-
     # Create a rounded rectangle outline
     corner_points = [
         Point(0, 0),
@@ -168,6 +161,8 @@ if __name__ == "__main__":
         Point(0, height)
     ]
     
+    outline = OutlineShape(corner_points)
+
     # Generate outline with rounded corners
     outline_points = []
     radius = 5.0  # Corner radius
@@ -176,13 +171,14 @@ if __name__ == "__main__":
         p1 = corner_points[i]
         p2 = corner_points[(i + 1) % len(corner_points)]
         p3 = corner_points[(i + 2) % len(corner_points)]
-        
+        print(p1, p2, p3)
         # Create lines for this corner
         line1 = Line(p1, p2)
         line2 = Line(p2, p3)
         
         # Add arc points
         arc_points = create_arc(line1, line2, radius)
+        print(arc_points)
         outline_points.extend(arc_points)
     
     # Convert to format expected by create_antenna_spiral
