@@ -331,6 +331,21 @@ if __name__ == "__main__":
     via_start = turns*spacing
     vias = [(via_start + i*via_spacing, height*0.5) for i in range(1, via_count + 1)]
 
-    create_antenna_spiral("mycoil/mycoil.kicad_pcb", pts, mode="trace", trace_width=trace_width, via_points=vias, flip_x=False, flip_y=False)
-    create_antenna_spiral("mycoil/mycoil.kicad_pcb", pts, mode="trace", trace_width=trace_width, via_points=vias, flip_x=True, flip_y=True)
+    # Generate coils for each layer
+    coil_sections = []
+    
+    # Front copper layer
+    coil_sections.append(
+        create_antenna_spiral(pts, mode="trace", trace_width=trace_width, 
+                            via_points=vias, flip_x=False, flip_y=False, layer="F.Cu")
+    )
+    
+    # Back copper layer
+    coil_sections.append(
+        create_antenna_spiral(pts, mode="trace", trace_width=trace_width,
+                            via_points=vias, flip_x=True, flip_y=True, layer="B.Cu")
+    )
+    
+    # Write all coils to file
+    write_coils_to_file("mycoil/mycoil.kicad_pcb", coil_sections)
 

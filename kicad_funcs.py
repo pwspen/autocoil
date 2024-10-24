@@ -59,7 +59,7 @@ def create_group_section(member_uuids):
     
     return group_section
 
-def create_trace(start_point, end_point, width=0.2):
+def create_trace(start_point, end_point, width=0.2, layer="F.Cu"):
     """
     Create a KiCad PCB trace segment between two points.
     
@@ -77,24 +77,28 @@ def create_trace(start_point, end_point, width=0.2):
 		(start {start_point[0]} {start_point[1]})
 		(end {end_point[0]} {end_point[1]})
 		(width {width})
-		(layer "F.Cu")
+		(layer "{layer}")
 		(net 0)
 		(uuid "{trace_uuid}")
 	)'''
     
     return trace_section, trace_uuid
 
-def create_antenna_spiral(filename, all_points, mode="polygon", trace_width=0.2, via_points=None, flip_x=False, flip_y=False):
+def create_antenna_spiral(all_points, mode="polygon", trace_width=0.2, via_points=None, flip_x=False, flip_y=False, layer="F.Cu"):
     """
-    Updates a KiCad PCB file with either a polygon or trace-based antenna pattern and vias.
+    Creates KiCad PCB sections for an antenna spiral pattern.
     
     Args:
-        filename (str): KiCad PCB filename
         all_points (list): List of (x,y) coordinates defining the antenna shape
         mode (str): Either "polygon" or "trace" to determine how the antenna is created
+        trace_width (float): Width of traces when in trace mode
         via_points (list): Optional list of (x, y) coordinates for via placement
         flip_x (bool): If True, flip points across y axis (negate x coordinates)
         flip_y (bool): If True, flip points across x axis (negate y coordinates)
+        layer (str): KiCad layer name (e.g. "F.Cu", "B.Cu", etc)
+        
+    Returns:
+        tuple: (main_section, via_sections, group_section, member_uuids)
     """
     
     # Apply flipping transformations
@@ -123,9 +127,10 @@ def create_antenna_spiral(filename, all_points, mode="polygon", trace_width=0.2,
                 (type solid)
             )
             (fill solid)
-            (layer "F.Cu")
+            (layer "{layer}")
             (uuid "{main_uuid}")
         )'''
+        member_uuids.append(main_uuid)
     else:  # trace mode
         # Create traces between consecutive points
         trace_sections = []
@@ -133,7 +138,7 @@ def create_antenna_spiral(filename, all_points, mode="polygon", trace_width=0.2,
         for i in range(len(all_points)-1):
             start = all_points[i]
             end = all_points[i+1]
-            trace_section, trace_uuid = create_trace(start, end, width=trace_width)
+            trace_section, trace_uuid = create_trace(start, end, width=trace_width, layer=layer)
             trace_sections.append(trace_section)
             trace_uuids.append(trace_uuid)
         main_section = "\n".join(trace_sections)
@@ -141,8 +146,6 @@ def create_antenna_spiral(filename, all_points, mode="polygon", trace_width=0.2,
 
     # Generate via sections if via points were provided
     via_sections = ""
-    if mode == "polygon":
-        member_uuids.append(main_uuid)
     if via_points:
         via_text, via_uuids = create_via_section(via_points)
         via_sections = via_text
@@ -150,7 +153,17 @@ def create_antenna_spiral(filename, all_points, mode="polygon", trace_width=0.2,
 
     # Create the group section
     group_section = create_group_section(member_uuids)
+    
+    return main_section, via_sections, group_section, member_uuids
 
+def write_coils_to_file(filename, coil_sections):
+    """
+    Writes multiple coil sections to a KiCad PCB file.
+    
+    Args:
+        filename (str): KiCad PCB filename
+        coil_sections (list): List of (main_section, via_sections, group_section) tuples
+    """
     # Read the KiCad PCB file
     with open(filename, 'r') as f:
         pcb_content = f.read()
@@ -158,8 +171,13 @@ def create_antenna_spiral(filename, all_points, mode="polygon", trace_width=0.2,
     # Find the last ) in the file to insert new content before it
     last_paren_index = pcb_content.rindex(')')
     
-    # Combine all new sections
-    new_content = f"{main_section}\n\t{via_sections}\n\t{group_section}\n)"
+    # Combine all sections from all coils
+    new_content = []
+    for main_section, via_sections, group_section, _ in coil_sections:
+        new_content.extend([main_section, via_sections, group_section])
+    
+    # Join all sections and add final parenthesis
+    new_content = "\n\t".join(filter(None, new_content)) + "\n)"
     
     # Insert the new content
     updated_content = pcb_content[:last_paren_index] + new_content
