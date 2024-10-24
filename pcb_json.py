@@ -298,10 +298,10 @@ if __name__ == "__main__":
     # Parameters for the spiral
     width = 80
     height = 25
-    spacing = 1
-    turns = 10
+    spacing = 0.2
+    turns = 50
     corner_radius = 2.0
-    trace_width = 0.2  # Added configurable trace width
+    trace_width = 0.1  # Added configurable trace width
     
     # Generate rectangular spiral points
     spiral_points = OutlineShape.generate_rectangular_spiral(width, height, spacing, turns)
@@ -309,21 +309,28 @@ if __name__ == "__main__":
     # Round all corners
     rounded_points = round_corners(spiral_points, corner_radius, debug=False)
     
-    # Plot just the points of the final rounded result
+    final_point = rounded_points[-1]
+    offset_final = Point(width*0.5, final_point.y) # Force final point to be at midway of coil
+    rounded_points[-1] = offset_final
+
+    # Convert to format expected by create_antenna_spiral
+    pts = [[p.x, p.y] for p in rounded_points]
+
     plt.figure(figsize=(10, 10))
-    x_coords = [p.x for p in rounded_points]
-    y_coords = [p.y for p in rounded_points]
+    x_coords = [p[0] for p in pts]
+    y_coords = [p[1] for p in pts]
     plt.plot(x_coords, y_coords, 'bo', alpha=0.5)  # Removed the '-' to not show lines
     plt.axis('equal')
     plt.grid(True)
     plt.title('Rounded Rectangular Spiral Points')
     plt.show()
-    
-    # Offset the final point by 2*trace_spacing
-    final_point = rounded_points[-1]
-    offset_final = Point(final_point.x + 2*spacing, final_point.y)
-    rounded_points[-1] = offset_final
 
-    # Convert to format expected by create_antenna_spiral
-    pts = [[p.x, p.y] for p in rounded_points]
-    create_antenna_spiral("mycoil/mycoil.kicad_pcb", pts, mode="trace", width=trace_width)
+    layers = 4
+    via_count = layers - 1
+    via_spacing = (width - (2*turns*spacing)) / (via_count + 1)
+    via_start = turns*spacing
+    vias = [(via_start + i*via_spacing, height*0.5) for i in range(1, via_count + 1)]
+
+    create_antenna_spiral("mycoil/mycoil.kicad_pcb", pts, mode="trace", trace_width=trace_width, via_points=vias, flip_x=False, flip_y=False)
+    create_antenna_spiral("mycoil/mycoil.kicad_pcb", pts, mode="trace", trace_width=trace_width, via_points=vias, flip_x=True, flip_y=True)
+
