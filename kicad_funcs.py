@@ -32,13 +32,14 @@ def create_via_section(via_points):
     
     return '\n'.join(via_sections), via_uuids
 
-def create_group_section(member_uuids):
+def create_group_section(member_uuids, name=""):
     """
     Create a KiCad PCB group section for the given member UUIDs.
     
     Args:
         member_uuids (list): List of UUID strings to include in the group
-    
+        name (str): Name for the group
+        
     Returns:
         str: Formatted group section text
     """
@@ -50,7 +51,7 @@ def create_group_section(member_uuids):
     
     group_uuid = str(uuid.uuid4())
     
-    group_section = f'''(group ""
+    group_section = f'''(group "{name}"
 		(uuid "{group_uuid}")
 		(members
 {"".join(members_text)}
@@ -172,7 +173,7 @@ def create_antenna_spiral(all_points, mode="polygon", trace_width=0.2, via_point
 
     # Create group section for this coil (including its traces/polygon and vias)
     all_element_uuids = trace_uuids + via_uuids
-    group_section = create_group_section(all_element_uuids)
+    group_section = create_group_section(all_element_uuids, name=f"Coil Layer {layer}")
     
     return main_section, via_sections, group_section, [coil_group_uuid]
 
@@ -283,8 +284,10 @@ def create_radial_array(coil_sections, num_copies, center_x, center_y, start_ang
                 new_main = transformed_text[:split_idx]
                 new_vias = transformed_text[split_idx:]
             
-            # Create new group section
-            new_group = create_group_section(new_uuids)
+            # Create new group section with layer name
+            layer_match = re.search(r'layer "([^"]+)"', new_main)
+            layer_name = layer_match.group(1) if layer_match else "Unknown"
+            new_group = create_group_section(new_uuids, name=f"Coil Layer {layer_name}")
             
             all_sections.append((new_main, new_vias, new_group, new_uuids))
     
