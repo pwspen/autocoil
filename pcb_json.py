@@ -200,65 +200,81 @@ class OutlineShape:
             
         return OutlineShape(new_points)
 
-    def generate_spiral(self, trace_spacing, num_rotations):
-        paths = []
-        
-        # Generate points for each small angular step
-        steps_per_rotation = 36  # adjust for smoothness
-        total_steps = num_rotations * steps_per_rotation
-        
-        for i in range(total_steps):
-            rotation = (2 * math.pi * i) / steps_per_rotation
-            inset_shape = self.get_inset_shape(trace_spacing, rotation)
-            paths.extend(inset_shape.points)
-        
-        return paths
+    def generate_rectangular_spiral(width: float, height: float, spacing: float, turns: int) -> List[Point]:
+        """Generate points for a rectangular spiral"""
+        points = []
+        for i in range(turns * 4):  # 4 sides per turn
+            current_inset = (i // 4) * spacing
+            w = width - 2 * current_inset
+            h = height - 2 * current_inset
+            
+            if w <= 0 or h <= 0:
+                break
+                
+            # Starting point for this rectangle
+            x = current_inset
+            y = current_inset
+            
+            # Add points for this rectangle level
+            points.extend([
+                Point(x, y),           # bottom-left
+                Point(x + w, y),       # bottom-right
+                Point(x + w, y + h),   # top-right
+                Point(x, y + h),       # top-left
+            ])
+            
+        return points
 
-if __name__ == "__main__":
-    width = 50
-    height = 25
-    trace_spacing = 10
-    trace_width = 1
-    turns = 1
-    via_points = [(0, 0), (25, 12.5), (50, 25)]  # Example via coordinates
-
-    # Create a rounded rectangle outline
-    corner_points = [
-        Point(0, 0),
-        Point(width, 0),
-        Point(width, height),
-        Point(0, height)
-    ]
-    
-    outline = OutlineShape(corner_points)
-
-    # Set up the plotting
-    fig = plt.figure(figsize=(15, 10))
-    
-    # Generate outline with rounded corners
-    outline_points = []
-    radius = 5.0  # Corner radius
-    
-    for i in range(len(corner_points)):
-        p1 = corner_points[i]
-        p2 = corner_points[(i + 1) % len(corner_points)]
-        p3 = corner_points[(i + 2) % len(corner_points)]
+def round_corners(points: List[Point], radius: float, debug: bool = False) -> List[Point]:
+    """Takes a list of points and returns a new list with rounded corners"""
+    if len(points) < 3:
+        return points
         
-        # Create subplot for this corner
-        ax = fig.add_subplot(2, 2, i+1)
-        ax.set_title(f'Corner {i+1}')
+    rounded_points = []
+    fig = None
+    axes = None
+    
+    if debug:
+        fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+        axes = axes.flatten()
+    
+    for i in range(len(points)):
+        p1 = points[i]
+        p2 = points[(i + 1) % len(points)]
+        p3 = points[(i + 2) % len(points)]
         
         # Create lines for this corner
         line1 = Line(p1, p2)
         line2 = Line(p2, p3)
         
-        # Add arc points with visualization
-        arc_points = create_arc(line1, line2, radius, ax=ax, debug=True)
-        outline_points.extend(arc_points)
+        # Get the arc points
+        ax = axes[i] if debug else None
+        if ax:
+            ax.set_title(f'Corner {i+1}')
+            
+        arc_points = create_arc(line1, line2, radius, ax=ax, debug=debug)
+        rounded_points.extend(arc_points)
     
-    plt.tight_layout()
-    plt.show()
+    if debug:
+        plt.tight_layout()
+        plt.show()
+        
+    return rounded_points
+
+if __name__ == "__main__":
+    # Parameters for the spiral
+    width = 50
+    height = 25
+    spacing = 5
+    turns = 2
+    corner_radius = 2.0
+    
+    # Generate rectangular spiral points
+    spiral_points = OutlineShape.generate_rectangular_spiral(width, height, spacing, turns)
+    
+    # Round all corners
+    rounded_points = round_corners(spiral_points, corner_radius, debug=True)
     
     # Convert to format expected by create_antenna_spiral
-    pts = [[p.x, p.y] for p in outline_points]
+    pts = [[p.x, p.y] for p in rounded_points]
     create_antenna_spiral("mycoil/mycoil.kicad_pcb", pts, mode="trace")
