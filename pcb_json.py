@@ -88,44 +88,56 @@ class Line:
         y = (a1 * c2 - a2 * c1) / determinant
         return Point(x, y)
 
-def create_arc(line1: tuple, line2: tuple, radius: float, ax=None, debug=True) -> List[tuple]:
+def create_arc(line1: Tuple[Tuple[float, float], Tuple[float, float]], 
+               line2: Tuple[Tuple[float, float], Tuple[float, float]], 
+               radius: float,
+               points: int = 3,
+               debug: bool = True) -> List[Tuple[float, float]]:
     """
     Creates an arc tangent to both lines with specified radius.
     Returns list of points approximating the arc.
-    If ax is provided, visualizes construction process.
     
     Args:
         line1: tuple of (start, end) points for first line
         line2: tuple of (start, end) points for second line
         radius: desired radius of the arc
-        ax: matplotlib axes for visualization (optional)
-        debug: whether to show construction elements (optional)
+        points: number of points to generate for the arc (minimum 3)
+        debug: whether to show construction elements and plot
     
     Returns:
         List of points approximating the arc
     """
+    # Ensure minimum of 3 points
+    points = max(3, points)
+    
     # Extract line points
     (start1, end1) = line1
     (start2, end2) = line2
     assert end1 == start2, "Lines must share an endpoint"
     corner = end1  # The shared point
     
-    # Calculate unit vectors along each line
-    v1 = (end1[0] - start1[0], end1[1] - start1[1])
-    v2 = (end2[0] - start2[0], end2[1] - start2[1])
+    # Convert points to numpy arrays for vector operations
+    start1 = np.array(start1)
+    end1 = np.array(end1)
+    start2 = np.array(start2)
+    end2 = np.array(end2)
     
-    len1 = math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])
-    len2 = math.sqrt(v2[0]*v2[0] + v2[1]*v2[1])
+    # Calculate unit vectors along each line
+    v1 = end1 - start1
+    v2 = end2 - start2
+    
+    len1 = np.linalg.norm(v1)
+    len2 = np.linalg.norm(v2)
     
     # Validate vector lengths
     if len1 < 1e-10 or len2 < 1e-10:
         raise ValueError("Line segments are too short")
         
-    dir1 = (v1[0]/len1, v1[1]/len1)
-    dir2 = (v2[0]/len2, v2[1]/len2)
+    dir1 = -v1 / len1  # Negative because we want vector pointing towards corner
+    dir2 = v2 / len2
     
     # Calculate angle between lines
-    dot_product = dir1[0]*dir2[0] + dir1[1]*dir2[1]
+    dot_product = np.dot(dir1, dir2)
     if debug:
         print(f"Vector 1: {v1}, length: {len1}")
         print(f"Vector 2: {v2}, length: {len2}")
@@ -133,7 +145,7 @@ def create_arc(line1: tuple, line2: tuple, radius: float, ax=None, debug=True) -
         print(f"Direction 2: {dir2}")
         print(f"Dot product: {dot_product}")
     
-    angle_between = math.acos(max(min(dot_product, 1), -1))  # Clamp to avoid numerical errors
+    angle_between = 2*np.pi - np.arccos(np.clip(dot_product, -1, 1))
     if debug:
         print(f"Angle between lines: {math.degrees(angle_between)} degrees")
     
@@ -141,34 +153,18 @@ def create_arc(line1: tuple, line2: tuple, radius: float, ax=None, debug=True) -
     center_distance = radius / math.sin(angle_between / 2)
     
     # Calculate bisector direction
-    bisector_x = dir1[0] + dir2[0]
-    bisector_y = dir1[1] + dir2[1]
-    bisector_length = math.sqrt(bisector_x*bisector_x + bisector_y*bisector_y)
-    
-    # Normalize bisector
-    bisector = (
-        bisector_x / bisector_length,
-        bisector_y / bisector_length
-    )
+    bisector = dir1 + dir2
+    bisector = bisector / np.linalg.norm(bisector)
     
     # Calculate center point
-    center = (
-        corner[0] + bisector[0] * center_distance,
-        corner[1] + bisector[1] * center_distance
-    )
+    corner = np.array(corner)
+    center = corner + bisector * center_distance
     
     # Calculate tangent points by moving back from corner along each line
-    tangent_distance = radius / math.tan(angle_between / 2)
+    tangent_distance = radius / np.tan(angle_between / 2)
     
-    tangent1 = (
-        corner[0] - dir1[0] * tangent_distance,
-        corner[1] - dir1[1] * tangent_distance
-    )
-    
-    tangent2 = (
-        corner[0] - dir2[0] * tangent_distance,
-        corner[1] - dir2[1] * tangent_distance
-    )
+    tangent1 = corner - dir1 * tangent_distance
+    tangent2 = corner - dir2 * tangent_distance
     
     # Calculate angles from center to tangent points
     start_angle = math.atan2(tangent1[1] - center[1], tangent1[0] - center[0])
@@ -182,31 +178,28 @@ def create_arc(line1: tuple, line2: tuple, radius: float, ax=None, debug=True) -
             end_angle += 2 * math.pi
     
     # Generate arc points
-    points = []
-    steps = 32  # Increased for smoother arc
+    t = np.linspace(0, 1, points)
+    angles = start_angle * (1-t) + end_angle * t
+    x = center[0] + radius * np.cos(angles)
+    y = center[1] + radius * np.sin(angles)
+    result_points = list(zip(x, y))
     
-    for i in range(steps):
-        t = i / (steps - 1)
-        angle = start_angle * (1-t) + end_angle * t
-        point = (
-            center[0] + radius * math.cos(angle),
-            center[1] + radius * math.sin(angle)
-        )
-        points.append(point)
-    
-    if debug and ax:
+    if debug:
+        fig, ax = plt.subplots()
         # Plot construction elements
         ax.plot([start1[0], end1[0]], [start1[1], end1[1]], 'k-', label='Original lines')
         ax.plot([start2[0], end2[0]], [start2[1], end2[1]], 'k-')
+        ax.plot(dir1[0], dir1[1], 'b-', label='Direction vectors')
+        ax.plot(dir2[0], dir2[1], 'b-')
         ax.plot(center[0], center[1], 'go', label='Arc center')
         ax.plot(corner[0], corner[1], 'ro', label='Corner point')
         ax.plot(tangent1[0], tangent1[1], 'mo', label='Tangent points')
         ax.plot(tangent2[0], tangent2[1], 'mo')
         
         # Plot arc
-        for i in range(1, len(points)):
-            prev = points[i-1]
-            curr = points[i]
+        for i in range(1, len(result_points)):
+            prev = result_points[i-1]
+            curr = result_points[i]
             ax.plot([prev[0], curr[0]], [prev[1], curr[1]], 'b-', alpha=0.8)
         
         # Draw radius lines
@@ -214,8 +207,9 @@ def create_arc(line1: tuple, line2: tuple, radius: float, ax=None, debug=True) -
         ax.plot([center[0], tangent2[0]], [center[1], tangent2[1]], 'g--', alpha=0.5)
         ax.legend()
         ax.axis('equal')
+        plt.show()
     
-    return points
+    return result_points
 
 class OutlineShape:
     def __init__(self, points: List[Point]):
@@ -289,7 +283,7 @@ class OutlineShape:
             
         return points
 
-def round_corners(points: List[tuple], radius: float, debug: bool = False) -> List[tuple]:
+def round_corners(points: List[tuple], radius: float, debug: bool = False, points_per_corner=6) -> List[tuple]:
     """Takes a list of points and returns a new list with rounded corners"""
     
     def dist(p1, p2):
@@ -333,7 +327,7 @@ def round_corners(points: List[tuple], radius: float, debug: bool = False) -> Li
         if ax:
             ax.set_title(f'Corner {i+1}')
             
-        arc_points = create_arc(line1, line2, radius, ax=ax, debug=debug)
+        arc_points = create_arc(line1, line2, radius, debug=debug, points=points_per_corner)
         if arc_points:
             rounded_points.extend(arc_points)
             
@@ -358,20 +352,20 @@ def plot(pts):
 
 if __name__ == "__main__":
     # Parameters for the spiral
-    width = 80
-    height = 25
+    width = 50
+    height = 15
     spacing = 0.2
-    turns = 50
+    turns = 28
     corner_radius = 1.0
     trace_width = 0.1
-    num_layers = 6
+    num_layers = 4
     
     # Parameters for radial array
-    num_copies = 4
+    num_copies = 18
     center_x = -50
-    center_y = 0
+    center_y = height/2
     start_angle = 0
-    spacing_angle = 90
+    spacing_angle = 360/num_copies
     # Generate coil stack template
     coil_stack = generate_coil_stack(
         width=width,

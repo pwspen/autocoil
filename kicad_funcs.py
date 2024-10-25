@@ -53,34 +53,6 @@ def create_via_section(via_points):
     
     return '\n'.join(via_sections), via_uuids
 
-def create_group_section(member_uuids, name=""):
-    
-    """
-    Create a KiCad PCB group section for the given member UUIDs.
-    
-    Args:
-        member_uuids (list): List of UUID strings to include in the group
-        name (str): Name for the group
-        
-    Returns:
-        str: Formatted group section text
-    """
-    # Format member UUIDs one per line
-    members_text = []
-    for uuid in member_uuids:
-        members_text.append(f'\t\t\t"{uuid}"')
-    
-    group_uuid = str(uuid.uuid4())
-    
-    group_section = f'''(group "{name}"
-		(uuid "{group_uuid}")
-		(members
-{chr(10).join(members_text)}
-		)
-	)'''
-    
-    return group_section, group_uuid
-
 def create_trace(start_point, end_point, width=0.2, layer="F.Cu"):
     """
     Create a KiCad PCB trace segment between two points.
@@ -246,7 +218,6 @@ def create_antenna_spiral(all_points, mode="polygon", trace_width=0.2, via_point
     # Generate UUIDs for elements
     trace_uuids = []
     via_uuids = []
-    coil_group_uuid = str(uuid.uuid4())
     
     if mode == "polygon":
         # Generate the points section string for polygon
@@ -288,8 +259,7 @@ def create_antenna_spiral(all_points, mode="polygon", trace_width=0.2, via_point
     # Create group section for this coil (including its traces/polygon and vias)
     all_element_uuids = trace_uuids + via_uuids
     group_uuid = str(uuid.uuid4())
-    group_section = create_group_section(all_element_uuids, name=f"Coil Layer {layer}")
-    
+    group_section, id = create_stack_group(all_element_uuids, name=f"Coil Layer {layer}")
     return main_section, via_sections, group_section, [group_uuid], all_element_uuids
 
 def create_stack_group(member_uuids, name="Coil Stack"):
@@ -317,7 +287,6 @@ def create_stack_group(member_uuids, name="Coil Stack"):
 {"".join(members_text)}
 		)
 	)'''
-    
     return group_section, group_uuid
 
 def transform_point(point, center_x, center_y, angle_rad):
@@ -435,22 +404,11 @@ def write_coils_to_file(filename, coil_sections, stack_uuids, num_sections_per_s
             stack_group, stack_uuid = create_stack_group(current_stack_members, 
                                            name=f"Coil Stack {stack_idx + 1}")
             new_content.append(stack_group)
-            all_stack_uuids.append(stack_uuids[stack_idx])
+            all_stack_uuids.append(stack_uuid)
             current_stack_members = []
-    
     # Create a group for the entire array
     array_group, array_group_uuid = create_stack_group(all_stack_uuids, name=stack_name)
     new_content.append(array_group)
-    
-    # Create a final group containing all stacks in the radial array
-    radial_array_uuid = str(uuid.uuid4())
-    radial_array_group = f'''(group "Radial Coil Array"
-		(uuid "{radial_array_uuid}")
-		(members
-		"{array_group_uuid}"
-		)
-	)'''
-    new_content.append(radial_array_group)
     
     # Filter out None values and ensure all items are strings
     filtered_content = [str(item) for item in new_content if item is not None]
