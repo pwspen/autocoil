@@ -136,14 +136,14 @@ def create_arc(line1: tuple, line2: tuple, radius: float, ax=None, debug=False) 
         corner[1] + (bisector_y / bisector_length) * center_distance
     )
     
-    # Calculate tangent points
+    # Calculate tangent points by moving back from corner along each line
     tangent1 = (
-        corner[0] - dir1[0] * radius,
-        corner[1] - dir1[1] * radius
+        corner[0] - dir1[0] * radius / math.sin(angle_between / 2),
+        corner[1] - dir1[1] * radius / math.sin(angle_between / 2)
     )
     tangent2 = (
-        corner[0] + dir2[0] * radius,
-        corner[1] + dir2[1] * radius
+        corner[0] + dir2[0] * radius / math.sin(angle_between / 2),
+        corner[1] + dir2[1] * radius / math.sin(angle_between / 2)
     )
     
     # Calculate angles from center to tangent points
