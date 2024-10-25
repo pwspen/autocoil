@@ -65,18 +65,17 @@ def create_group_section(member_uuids, name=""):
     Returns:
         str: Formatted group section text
     """
-    # Format member UUIDs with at most 2 per line
+    # Format member UUIDs one per line
     members_text = []
-    for i in range(0, len(member_uuids), 2):
-        chunk = member_uuids[i:i + 2]
-        members_text.append(f'\t\t{" ".join(f""""{uuid}" """ for uuid in chunk)}')
+    for uuid in member_uuids:
+        members_text.append(f'\t\t\t"{uuid}"')
     
     group_uuid = str(uuid.uuid4())
     
     group_section = f'''(group "{name}"
 		(uuid "{group_uuid}")
 		(members
-{"".join(members_text)}
+{chr(10).join(members_text)}
 		)
 	)'''
     
