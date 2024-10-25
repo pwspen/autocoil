@@ -112,17 +112,30 @@ def create_arc(line1: tuple, line2: tuple, radius: float, ax=None, debug=True) -
     
     # Calculate unit vectors along each line
     v1 = (end1[0] - start1[0], end1[1] - start1[1])
-    v2 = (end2[0] - end2[0], end2[1] - end2[1])
+    v2 = (end2[0] - start2[0], end2[1] - start2[1])
     
     len1 = math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])
     len2 = math.sqrt(v2[0]*v2[0] + v2[1]*v2[1])
     
+    # Validate vector lengths
+    if len1 < 1e-10 or len2 < 1e-10:
+        raise ValueError("Line segments are too short")
+        
     dir1 = (v1[0]/len1, v1[1]/len1)
     dir2 = (v2[0]/len2, v2[1]/len2)
     
     # Calculate angle between lines
     dot_product = dir1[0]*dir2[0] + dir1[1]*dir2[1]
+    if debug:
+        print(f"Vector 1: {v1}, length: {len1}")
+        print(f"Vector 2: {v2}, length: {len2}")
+        print(f"Direction 1: {dir1}")
+        print(f"Direction 2: {dir2}")
+        print(f"Dot product: {dot_product}")
+    
     angle_between = math.acos(max(min(dot_product, 1), -1))  # Clamp to avoid numerical errors
+    if debug:
+        print(f"Angle between lines: {math.degrees(angle_between)} degrees")
     
     # Distance from corner to arc center
     center_distance = radius / math.sin(angle_between / 2)
