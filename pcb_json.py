@@ -88,102 +88,117 @@ class Line:
         y = (a1 * c2 - a2 * c1) / determinant
         return Point(x, y)
 
-def create_arc(line1: tuple, line2: tuple, radius: float, ax=None, debug=False) -> List[tuple]:
+def create_arc(line1: tuple, line2: tuple, radius: float, ax=None, debug=True) -> List[tuple]:
     """
     Creates an arc tangent to both lines with specified radius.
     Returns list of points approximating the arc.
     If ax is provided, visualizes construction process.
+    
+    Args:
+        line1: tuple of (start, end) points for first line
+        line2: tuple of (start, end) points for second line
+        radius: desired radius of the arc
+        ax: matplotlib axes for visualization (optional)
+        debug: whether to show construction elements (optional)
+    
+    Returns:
+        List of points approximating the arc
     """
     # Extract line points
     (start1, end1) = line1
     (start2, end2) = line2
+    assert end1 == start2, "Lines must share an endpoint"
+    corner = end1  # The shared point
     
-    # Calculate line directions
-    dx1 = end1[0] - start1[0]
-    dy1 = end1[1] - start1[1]
-    dx2 = end2[0] - start2[0]
-    dy2 = end2[1] - start2[1]
+    # Calculate unit vectors along each line
+    v1 = (end1[0] - start1[0], end1[1] - start1[1])
+    v2 = (end2[0] - end2[0], end2[1] - end2[1])
     
-    # Normalize directions
-    len1 = math.sqrt(dx1*dx1 + dy1*dy1)
-    len2 = math.sqrt(dx2*dx2 + dy2*dy2)
-    dir1 = (dx1/len1, dy1/len1)
-    dir2 = (dx2/len2, dy2/len2)
+    len1 = math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])
+    len2 = math.sqrt(v2[0]*v2[0] + v2[1]*v2[1])
     
-    # Find intersection point
-    # Using parametric form of lines and solving for parameters t1, t2
-    det = dx1*dy2 - dy1*dx2
-    if abs(det) < 1e-10:  # Lines are parallel
-        return []
-        
-    t1 = ((start2[0] - start1[0])*dy2 - (start2[1] - start1[1])*dx2) / det
-    corner = (start1[0] + t1*dx1, start1[1] + t1*dy1)
-    
-    # Calculate perpendicular vectors
-    perp1 = (-dir1[1], dir1[0])
-    perp2 = (-dir2[1], dir2[0])
+    dir1 = (v1[0]/len1, v1[1]/len1)
+    dir2 = (v2[0]/len2, v2[1]/len2)
     
     # Calculate angle between lines
-    angle_between = math.acos(dir1[0]*dir2[0] + dir1[1]*dir2[1])
+    dot_product = dir1[0]*dir2[0] + dir1[1]*dir2[1]
+    angle_between = math.acos(max(min(dot_product, 1), -1))  # Clamp to avoid numerical errors
+    
+    # Distance from corner to arc center
     center_distance = radius / math.sin(angle_between / 2)
     
-    # Center is along the bisector of the angle
-    bisector_x = (perp1[0] + perp2[0]) / 2
-    bisector_y = (perp1[1] + perp2[1]) / 2
-    bisector_length = math.sqrt(bisector_x * bisector_x + bisector_y * bisector_y)
+    # Calculate bisector direction
+    bisector_x = dir1[0] + dir2[0]
+    bisector_y = dir1[1] + dir2[1]
+    bisector_length = math.sqrt(bisector_x*bisector_x + bisector_y*bisector_y)
+    
+    # Normalize bisector
+    bisector = (
+        bisector_x / bisector_length,
+        bisector_y / bisector_length
+    )
+    
+    # Calculate center point
     center = (
-        corner[0] + (bisector_x / bisector_length) * center_distance,
-        corner[1] + (bisector_y / bisector_length) * center_distance
+        corner[0] + bisector[0] * center_distance,
+        corner[1] + bisector[1] * center_distance
     )
     
     # Calculate tangent points by moving back from corner along each line
+    tangent_distance = radius / math.tan(angle_between / 2)
+    
     tangent1 = (
-        corner[0] - dir1[0] * radius / math.sin(angle_between / 2),
-        corner[1] - dir1[1] * radius / math.sin(angle_between / 2)
+        corner[0] - dir1[0] * tangent_distance,
+        corner[1] - dir1[1] * tangent_distance
     )
+    
     tangent2 = (
-        corner[0] + dir2[0] * radius / math.sin(angle_between / 2),
-        corner[1] + dir2[1] * radius / math.sin(angle_between / 2)
+        corner[0] - dir2[0] * tangent_distance,
+        corner[1] - dir2[1] * tangent_distance
     )
     
     # Calculate angles from center to tangent points
     start_angle = math.atan2(tangent1[1] - center[1], tangent1[0] - center[0])
     end_angle = math.atan2(tangent2[1] - center[1], tangent2[0] - center[0])
     
-    if debug and ax:
-        # Plot construction elements
-        line1.plot(ax, color='black', label='Original lines')
-        line2.plot(ax, color='black')
-        ax.plot(center.x, center.y, 'go', label='Arc center')
-        ax.plot(corner.x, corner.y, 'ro', label='Corner point')
-        ax.plot(tangent1.x, tangent1.y, 'mo', label='Tangent points')
-        ax.plot(tangent2.x, tangent2.y, 'mo')
+    # Ensure we draw the shorter arc
+    if abs(end_angle - start_angle) > math.pi:
+        if end_angle > start_angle:
+            end_angle -= 2 * math.pi
+        else:
+            end_angle += 2 * math.pi
     
     # Generate arc points
     points = []
-    steps = 8  # Increased for smoother visualization
-    if end_angle < start_angle:
-        end_angle += 2 * math.pi
+    steps = 32  # Increased for smoother arc
     
-    # Include both start and end points
-    for i in range(steps):  # Changed from steps + 1 to steps
-        t = i / (steps - 1)  # Changed from steps to steps - 1
+    for i in range(steps):
+        t = i / (steps - 1)
         angle = start_angle * (1-t) + end_angle * t
         point = (
             center[0] + radius * math.cos(angle),
             center[1] + radius * math.sin(angle)
         )
         points.append(point)
-        
-        if ax and i > 0:
-            # Plot arc segments
-            prev = points[i-1]
-            ax.plot([prev.x, point.x], [prev.y, point.y], 'b-', alpha=0.8)
     
     if debug and ax:
-        # Draw radius lines to tangent points
-        ax.plot([center.x, tangent1.x], [center.y, tangent1.y], 'g--', alpha=0.5, label='Radius')
-        ax.plot([center.x, tangent2.x], [center.y, tangent2.y], 'g--', alpha=0.5)
+        # Plot construction elements
+        ax.plot([start1[0], end1[0]], [start1[1], end1[1]], 'k-', label='Original lines')
+        ax.plot([start2[0], end2[0]], [start2[1], end2[1]], 'k-')
+        ax.plot(center[0], center[1], 'go', label='Arc center')
+        ax.plot(corner[0], corner[1], 'ro', label='Corner point')
+        ax.plot(tangent1[0], tangent1[1], 'mo', label='Tangent points')
+        ax.plot(tangent2[0], tangent2[1], 'mo')
+        
+        # Plot arc
+        for i in range(1, len(points)):
+            prev = points[i-1]
+            curr = points[i]
+            ax.plot([prev[0], curr[0]], [prev[1], curr[1]], 'b-', alpha=0.8)
+        
+        # Draw radius lines
+        ax.plot([center[0], tangent1[0]], [center[1], tangent1[1]], 'g--', alpha=0.5, label='Radius')
+        ax.plot([center[0], tangent2[0]], [center[1], tangent2[1]], 'g--', alpha=0.5)
         ax.legend()
         ax.axis('equal')
     
@@ -263,6 +278,10 @@ class OutlineShape:
 
 def round_corners(points: List[tuple], radius: float, debug: bool = False) -> List[tuple]:
     """Takes a list of points and returns a new list with rounded corners"""
+    
+    def dist(p1, p2):
+        return math.sqrt((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2)
+    
     if len(points) < 3:
         return points
         
@@ -285,8 +304,8 @@ def round_corners(points: List[tuple], radius: float, debug: bool = False) -> Li
         p3 = points[i + 2]
         
         # Calculate line lengths
-        line1_length = math.sqrt((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2)
-        line2_length = math.sqrt((p3[0]-p2[0])**2 + (p3[1]-p2[1])**2)
+        line1_length = dist(p1, p2)
+        line2_length = dist(p2, p3)
         
         if line1_length < 2 * radius or line2_length < 2 * radius:
             raise ValueError(f"Line segment at point {i+1} is too short for the specified radius. "
@@ -303,7 +322,7 @@ def round_corners(points: List[tuple], radius: float, debug: bool = False) -> Li
             
         arc_points = create_arc(line1, line2, radius, ax=ax, debug=debug)
         if arc_points:
-            rounded_points.extend(arc_points)  # Don't include last point of arc
+            rounded_points.extend(arc_points)
             
     # Add the final point
     rounded_points.append(points[-1])
