@@ -88,53 +88,67 @@ class Line:
         y = (a1 * c2 - a2 * c1) / determinant
         return Point(x, y)
 
-def create_arc(line1: Line, line2: Line, radius: float, ax=None, debug=False) -> List[Point]:
+def create_arc(line1: tuple, line2: tuple, radius: float, ax=None, debug=False) -> List[tuple]:
     """
     Creates an arc tangent to both lines with specified radius.
     Returns list of points approximating the arc.
     If ax is provided, visualizes construction process.
     """
-    # Find intersection of original lines
-    corner = line1.intersect(line2)
-    if corner is None:
-        return []  # Lines are parallel
+    # Extract line points
+    (start1, end1) = line1
+    (start2, end2) = line2
+    
+    # Calculate line directions
+    dx1 = end1[0] - start1[0]
+    dy1 = end1[1] - start1[1]
+    dx2 = end2[0] - start2[0]
+    dy2 = end2[1] - start2[1]
+    
+    # Normalize directions
+    len1 = math.sqrt(dx1*dx1 + dy1*dy1)
+    len2 = math.sqrt(dx2*dx2 + dy2*dy2)
+    dir1 = (dx1/len1, dy1/len1)
+    dir2 = (dx2/len2, dy2/len2)
+    
+    # Find intersection point
+    # Using parametric form of lines and solving for parameters t1, t2
+    det = dx1*dy2 - dy1*dx2
+    if abs(det) < 1e-10:  # Lines are parallel
+        return []
         
-    # Get perpendicular vectors at corner point
-    perp1 = line1.perpendicular(corner)
-    perp2 = line2.perpendicular(corner)
+    t1 = ((start2[0] - start1[0])*dy2 - (start2[1] - start1[1])*dx2) / det
+    corner = (start1[0] + t1*dx1, start1[1] + t1*dy1)
     
-    # Create perpendicular lines from corner point
-    perp_line1 = Line(corner, Point(corner.x + perp1.x, corner.y + perp1.y))
-    perp_line2 = Line(corner, Point(corner.x + perp2.x, corner.y + perp2.y))
+    # Calculate perpendicular vectors
+    perp1 = (-dir1[1], dir1[0])
+    perp2 = (-dir2[1], dir2[0])
     
-    # Calculate center point
-    dir1 = line1.direction
-    dir2 = line2.direction
-    angle_between = math.acos(dir1.x * dir2.x + dir1.y * dir2.y)
+    # Calculate angle between lines
+    angle_between = math.acos(dir1[0]*dir2[0] + dir1[1]*dir2[1])
     center_distance = radius / math.sin(angle_between / 2)
     
     # Center is along the bisector of the angle
-    bisector_x = (perp1.x + perp2.x) / 2
-    bisector_y = (perp1.y + perp2.y) / 2
+    bisector_x = (perp1[0] + perp2[0]) / 2
+    bisector_y = (perp1[1] + perp2[1]) / 2
     bisector_length = math.sqrt(bisector_x * bisector_x + bisector_y * bisector_y)
-    center = Point(
-        corner.x + (bisector_x / bisector_length) * center_distance,
-        corner.y + (bisector_y / bisector_length) * center_distance
+    center = (
+        corner[0] + (bisector_x / bisector_length) * center_distance,
+        corner[1] + (bisector_y / bisector_length) * center_distance
     )
     
     # Calculate tangent points
-    tangent1 = Point(
-        corner.x - dir1.x * radius,
-        corner.y - dir1.y * radius
+    tangent1 = (
+        corner[0] - dir1[0] * radius,
+        corner[1] - dir1[1] * radius
     )
-    tangent2 = Point(
-        corner.x + dir2.x * radius,
-        corner.y + dir2.y * radius
+    tangent2 = (
+        corner[0] + dir2[0] * radius,
+        corner[1] + dir2[1] * radius
     )
     
     # Calculate angles from center to tangent points
-    start_angle = math.atan2(tangent1.y - center.y, tangent1.x - center.x)
-    end_angle = math.atan2(tangent2.y - center.y, tangent2.x - center.x)
+    start_angle = math.atan2(tangent1[1] - center[1], tangent1[0] - center[0])
+    end_angle = math.atan2(tangent2[1] - center[1], tangent2[0] - center[0])
     
     if debug and ax:
         # Plot construction elements
@@ -155,9 +169,9 @@ def create_arc(line1: Line, line2: Line, radius: float, ax=None, debug=False) ->
     for i in range(steps):  # Changed from steps + 1 to steps
         t = i / (steps - 1)  # Changed from steps to steps - 1
         angle = start_angle * (1-t) + end_angle * t
-        point = Point(
-            center.x + radius * math.cos(angle),
-            center.y + radius * math.sin(angle)
+        point = (
+            center[0] + radius * math.cos(angle),
+            center[1] + radius * math.sin(angle)
         )
         points.append(point)
         
@@ -247,7 +261,7 @@ class OutlineShape:
             
         return points
 
-def round_corners(points: List[Point], radius: float, debug: bool = False) -> List[Point]:
+def round_corners(points: List[tuple], radius: float, debug: bool = False) -> List[tuple]:
     """Takes a list of points and returns a new list with rounded corners"""
     if len(points) < 3:
         return points
@@ -270,17 +284,17 @@ def round_corners(points: List[Point], radius: float, debug: bool = False) -> Li
         p2 = points[i + 1]
         p3 = points[i + 2]
         
-        # Check line lengths
-        line1_length = p1.distance_to(p2)
-        line2_length = p2.distance_to(p3)
+        # Calculate line lengths
+        line1_length = math.sqrt((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2)
+        line2_length = math.sqrt((p3[0]-p2[0])**2 + (p3[1]-p2[1])**2)
         
         if line1_length < 2 * radius or line2_length < 2 * radius:
             raise ValueError(f"Line segment at point {i+1} is too short for the specified radius. "
                            f"Line lengths: {line1_length:.2f}, {line2_length:.2f}, Required: {2*radius}")
         
-        # Create lines for this corner
-        line1 = Line(p1, p2)
-        line2 = Line(p2, p3)
+        # Create line tuples for the arc function
+        line1 = (p1, p2)
+        line2 = (p2, p3)
         
         # Get the arc points
         ax = axes[i] if debug else None
