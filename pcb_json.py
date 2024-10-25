@@ -354,6 +354,9 @@ if __name__ == "__main__":
         for section in stack.sections:
             # Convert numpy points to list format
             pts = section.points
+            
+            pts = round_corners(pts, corner_radius)
+
             via_pts = section.via_points if section.via_points is not None else None
             
             # Create KiCAD sections
@@ -365,7 +368,6 @@ if __name__ == "__main__":
                 layer=section.layer
             )
             all_coil_sections.append((main_section, via_section, group_section, group_uuid, element_uuids))
-    
     # Write all coils and stack groups to file
     write_coils_to_file("mycoil/mycoil.kicad_pcb", all_coil_sections, stack_uuids,
                        num_sections_per_stack=len(coil_stack.sections),
