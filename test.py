@@ -1,4 +1,5 @@
 import math
+import numpy as np
 from typing import List, Tuple
 import matplotlib.pyplot as plt
 
@@ -30,22 +31,28 @@ def create_arc(line1: Tuple[Tuple[float, float], Tuple[float, float]],
     assert end1 == start2, "Lines must share an endpoint"
     corner = end1  # The shared point
     
-    # Calculate unit vectors along each line
-    v1 = (end1[0] - start1[0], end1[1] - start1[1])
-    v2 = (end2[0] - start2[0], end2[1] - start2[1])
+    # Convert points to numpy arrays for vector operations
+    start1 = np.array(start1)
+    end1 = np.array(end1)
+    start2 = np.array(start2)
+    end2 = np.array(end2)
     
-    len1 = math.sqrt(v1[0]*v1[0] + v1[1]*v1[1])
-    len2 = math.sqrt(v2[0]*v2[0] + v2[1]*v2[1])
+    # Calculate unit vectors along each line
+    v1 = end1 - start1
+    v2 = end2 - start2
+    
+    len1 = np.linalg.norm(v1)
+    len2 = np.linalg.norm(v2)
     
     # Validate vector lengths
     if len1 < 1e-10 or len2 < 1e-10:
         raise ValueError("Line segments are too short")
         
-    dir1 = (-v1[0]/len1, -v1[1]/len1)
-    dir2 = (v2[0]/len2, v2[1]/len2)
+    dir1 = -v1 / len1  # Negative because we want vector pointing towards corner
+    dir2 = v2 / len2
     
     # Calculate angle between lines
-    dot_product = dir1[0]*dir2[0] + dir1[1]*dir2[1]
+    dot_product = np.dot(dir1, dir2)
     if debug:
         print(f"Vector 1: {v1}, length: {len1}")
         print(f"Vector 2: {v2}, length: {len2}")
@@ -53,7 +60,7 @@ def create_arc(line1: Tuple[Tuple[float, float], Tuple[float, float]],
         print(f"Direction 2: {dir2}")
         print(f"Dot product: {dot_product}")
     
-    angle_between =  2*math.pi - math.acos(max(min(dot_product, 1), -1))
+    angle_between = 2*np.pi - np.arccos(np.clip(dot_product, -1, 1))
     if debug:
         print(f"Angle between lines: {math.degrees(angle_between)} degrees")
     
@@ -61,34 +68,18 @@ def create_arc(line1: Tuple[Tuple[float, float], Tuple[float, float]],
     center_distance = radius / math.sin(angle_between / 2)
     
     # Calculate bisector direction
-    bisector_x = dir1[0] + dir2[0]
-    bisector_y = dir1[1] + dir2[1]
-    bisector_length = math.sqrt(bisector_x*bisector_x + bisector_y*bisector_y)
-    
-    # Normalize bisector
-    bisector = (
-        bisector_x / bisector_length,
-        bisector_y / bisector_length
-    )
+    bisector = dir1 + dir2
+    bisector = bisector / np.linalg.norm(bisector)
     
     # Calculate center point
-    center = (
-        corner[0] + bisector[0] * center_distance,
-        corner[1] + bisector[1] * center_distance
-    )
+    corner = np.array(corner)
+    center = corner + bisector * center_distance
     
     # Calculate tangent points by moving back from corner along each line
-    tangent_distance = radius / math.tan(angle_between / 2)
+    tangent_distance = radius / np.tan(angle_between / 2)
     
-    tangent1 = (
-        corner[0] - dir1[0] * tangent_distance,
-        corner[1] - dir1[1] * tangent_distance
-    )
-    
-    tangent2 = (
-        corner[0] - dir2[0] * tangent_distance,
-        corner[1] - dir2[1] * tangent_distance
-    )
+    tangent1 = corner - dir1 * tangent_distance
+    tangent2 = corner - dir2 * tangent_distance
     
     # Calculate angles from center to tangent points
     start_angle = math.atan2(tangent1[1] - center[1], tangent1[0] - center[0])
@@ -102,15 +93,11 @@ def create_arc(line1: Tuple[Tuple[float, float], Tuple[float, float]],
             end_angle += 2 * math.pi
     
     # Generate arc points
-    result_points = []
-    for i in range(points):
-        t = i / (points - 1)
-        angle = start_angle * (1-t) + end_angle * t
-        point = (
-            center[0] + radius * math.cos(angle),
-            center[1] + radius * math.sin(angle)
-        )
-        result_points.append(point)
+    t = np.linspace(0, 1, points)
+    angles = start_angle * (1-t) + end_angle * t
+    x = center[0] + radius * np.cos(angles)
+    y = center[1] + radius * np.sin(angles)
+    result_points = list(zip(x, y))
     
     if debug:
         fig, ax = plt.subplots()
