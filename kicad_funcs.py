@@ -414,10 +414,10 @@ def write_coils_to_file(filename, coil_sections, stack_uuids, num_sections_per_s
     """
     # Read the KiCad PCB file
     with open(filename, 'r') as f:
-        pcb_content = f.read()
-
-    # Find the last ) in the file to insert new content before it
-    last_paren_index = pcb_content.rindex(')')
+        lines = f.readlines()
+    
+    # Truncate at line 205 and add closing parenthesis
+    base_content = ''.join(lines[:204]) + ')\n'
     
     # Combine all sections from all coils
     new_content = []
@@ -458,9 +458,7 @@ def write_coils_to_file(filename, coil_sections, stack_uuids, num_sections_per_s
     # Join all sections and add final parenthesis
     new_content = "\n\t".join(filtered_content) + "\n)"
     
-    # Insert the new content
-    updated_content = pcb_content[:last_paren_index] + new_content
-
-    # Write the updated content back to the file
+    # Write the base content plus new sections
     with open(filename, 'w') as f:
-        f.write(updated_content)
+        f.write(base_content[:-2])  # Remove the last \n)
+        f.write(new_content)
