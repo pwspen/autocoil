@@ -1,5 +1,4 @@
 import numpy as np
-import re
 import uuid
 import math
 from dataclasses import dataclass
