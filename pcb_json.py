@@ -357,7 +357,7 @@ if __name__ == "__main__":
     width = 45
     height = 15.5
     spacing = 0.25
-    turns = 20
+    turns = 16
     corner_radius = 0.3
     trace_width = 0.1
     num_layers = 4
