@@ -1,7 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import re
-import uuid
 import math
 from dataclasses import dataclass
 from typing import Tuple, List
@@ -253,36 +251,6 @@ class OutlineShape:
             
         return OutlineShape(new_points)
 
-    def generate_rectangular_spiral(width: float, height: float, spacing: float, turns: int) -> List[Point]:
-        """Generate points for a continuous rectangular spiral inwards with only horizontal and vertical lines"""
-        points = []
-        x_start = 0
-        y_start = 0
-        w = width
-        h = height
-        
-        for turn in range(turns):
-            if w <= 0 or h <= 0:
-                break
-                
-            # Bottom edge (left to right)
-            points.append(Point(x_start, y_start))
-            points.append(Point(x_start + w, y_start))
-            
-            # Right edge (bottom to top)
-            points.append(Point(x_start + w, y_start + h))
-            
-            # Top edge (right to left)
-            points.append(Point(x_start + spacing, y_start + h))
-            
-            # Left edge (top to bottom, but stop at new start point)
-            x_start += spacing
-            y_start += spacing
-            w -= 2 * spacing
-            h -= 2 * spacing
-            #points.append(Point(x_start, y_start))
-            
-        return points
 
 def round_corners(points: List[tuple], radius: float, debug: bool = False, points_per_corner=6) -> List[tuple]:
     """Takes a list of points and returns a new list with rounded corners"""
@@ -342,32 +310,11 @@ def round_corners(points: List[tuple], radius: float, debug: bool = False, point
         
     return rounded_points
 
-def plot(pts):
-        plt.figure(figsize=(10, 10))
-        x_coords = [p[0] for p in pts]
-        y_coords = [p[1] for p in pts]
-        plt.plot(x_coords, y_coords, 'bo', alpha=0.5)  # Removed the '-' to not show lines
-        plt.axis('equal')
-        plt.grid(True)
-        plt.title('Rounded Rectangular Spiral Points')
-        plt.show()
-
-if __name__ == "__main__":
-    # Parameters for the spiral
-    width = 45
-    height = 15.5
-    spacing = 0.25
-    turns = 16
-    corner_radius = 0.3
-    trace_width = 0.1
-    num_layers = 4
-    
-    # Parameters for radial array
-    num_copies = 24
-    center_x = -15
-    center_y = height/2
-    start_angle = 0
+def generate_coil_array(width, height, spacing, turns, corner_radius, trace_width, num_layers,
+                       num_copies, center_x, center_y, start_angle):
+    """Generate a radial array of coil stacks"""
     spacing_angle = 360/num_copies
+    
     # Generate coil stack template
     coil_stack = generate_coil_stack(
         width=width,
@@ -379,7 +326,7 @@ if __name__ == "__main__":
     )
     
     # Create radial array
-    coil_stacks = create_radial_array(
+    return create_radial_array(
         coil_stack=coil_stack,
         num_copies=num_copies,
         center_x=center_x,
@@ -387,16 +334,16 @@ if __name__ == "__main__":
         start_angle_deg=start_angle,
         spacing_deg=spacing_angle
     )
-    
-    # Generate KiCAD sections for each stack
+
+def process_coil_sections(coil_stacks, corner_radius):
+    """Process coil sections and return KiCAD sections"""
     all_coil_sections = []
     stack_uuids = []
+    
     for stack, stack_uuid in coil_stacks:
         stack_uuids.append(stack_uuid)
         for section in stack.sections:
-            # Convert numpy points to list format
             pts = section.points
-            
             pts = round_corners(pts, corner_radius)
 
             # Calculate total path length
@@ -410,16 +357,44 @@ if __name__ == "__main__":
             via_pts = section.via_points if section.via_points is not None else None
             
             # Create KiCAD sections
-            main_section, via_section, group_section, group_uuid, element_uuids = create_antenna_spiral(
+            sections = create_antenna_spiral(
                 pts, 
                 mode=section.mode.value,
                 trace_width=section.trace_width,
                 via_points=via_pts,
                 layer=section.layer
             )
-            all_coil_sections.append((main_section, via_section, group_section, group_uuid, element_uuids))
-    # Write all coils and stack groups to file
-    write_coils_to_file("mycoil/mycoil.kicad_pcb", all_coil_sections, stack_uuids,
-                       num_sections_per_stack=len(coil_stack.sections),
-                       stack_name="Multi-Layer Coil Array")
+            all_coil_sections.append(sections)
+            
+    return all_coil_sections, stack_uuids
+
+if __name__ == "__main__":
+    # Parameters
+    params = {
+        'width': 45,
+        'height': 15.5,
+        'spacing': 0.25,
+        'turns': 16,
+        'corner_radius': 0.3,
+        'trace_width': 0.1,
+        'num_layers': 4,
+        'num_copies': 24,
+        'center_x': -15,
+        'center_y': 15.5/2,  # height/2
+        'start_angle': 0
+    }
+    # Generate coil array
+    coil_stacks = generate_coil_array(**params)
+    
+    # Process sections
+    all_coil_sections, stack_uuids = process_coil_sections(coil_stacks, params['corner_radius'])
+    
+    # Write to file
+    write_coils_to_file(
+        "mycoil/mycoil.kicad_pcb", 
+        all_coil_sections, 
+        stack_uuids,
+        num_sections_per_stack=params['num_layers'],
+        stack_name="Multi-Layer Coil Array"
+    )
     print('Saved to file')
