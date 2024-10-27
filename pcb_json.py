@@ -154,7 +154,8 @@ def create_arc(line1: Tuple[Tuple[float, float], Tuple[float, float]],
     
     # Calculate bisector direction
     bisector = dir1 + dir2
-    bisector = bisector / np.linalg.norm(bisector)
+    norm = np.linalg.norm(bisector)
+    bisector = bisector / norm if norm > 1e-10 else dir1  # Use dir1 if bisector is too short
     
     # Calculate center point
     corner = np.array(corner)
@@ -314,7 +315,8 @@ def round_corners(points: List[tuple], radius: float, debug: bool = False, point
         line1_length = dist(p1, p2)
         line2_length = dist(p2, p3)
         
-        if line1_length < 2 * radius or line2_length < 2 * radius:
+        # TODO make this check angle before deciding to raise error
+        if line1_length < 0.5*radius or line2_length < 0.5*radius:
             raise ValueError(f"Line segment at point {i+1} is too short for the specified radius. "
                            f"Line lengths: {line1_length:.2f}, {line2_length:.2f}, Required: {2*radius}")
         
@@ -352,17 +354,17 @@ def plot(pts):
 
 if __name__ == "__main__":
     # Parameters for the spiral
-    width = 50
-    height = 15
-    spacing = 0.2
-    turns = 28
-    corner_radius = 1.0
+    width = 45
+    height = 15.5
+    spacing = 0.25
+    turns = 20
+    corner_radius = 0.3
     trace_width = 0.1
     num_layers = 4
     
     # Parameters for radial array
-    num_copies = 18
-    center_x = -50
+    num_copies = 24
+    center_x = -15
     center_y = height/2
     start_angle = 0
     spacing_angle = 360/num_copies
@@ -396,6 +398,8 @@ if __name__ == "__main__":
             pts = section.points
             
             pts = round_corners(pts, corner_radius)
+
+            !Calculate length here!
 
             via_pts = section.via_points if section.via_points is not None else None
             
