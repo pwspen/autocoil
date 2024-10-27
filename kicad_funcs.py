@@ -78,6 +78,48 @@ def create_trace(start_point, end_point, width=0.2, layer="F.Cu"):
     
     return trace_section, trace_uuid
 
+def line_intersection(line1: tuple, line2: tuple) -> tuple:
+    """
+    Calculate the intersection point of two lines.
+    
+    Args:
+        line1: tuple of two points ((x1, y1), (x2, y2)) defining the first line
+        line2: tuple of two points ((x3, y3), (x4, y4)) defining the second line
+    
+    Returns:
+        tuple: (x, y) intersection point coordinates
+        
+    Raises:
+        ValueError: If lines are parallel or coincident
+    """
+    # Extract points
+    (x1, y1), (x2, y2) = line1
+    (x3, y3), (x4, y4) = line2
+    
+    # Convert to numpy arrays for easier calculation
+    p1 = np.array([x1, y1])
+    p2 = np.array([x2, y2])
+    p3 = np.array([x3, y3])
+    p4 = np.array([x4, y4])
+    
+    # Calculate direction vectors
+    d1 = p2 - p1
+    d2 = p4 - p3
+    
+    # Calculate cross product to check for parallel lines
+    cross_product = np.cross(d1, d2)
+    
+    if abs(cross_product) < 1e-10:  # Using small epsilon for floating-point comparison
+        raise ValueError("Lines are parallel or coincident")
+    
+    # Calculate intersection parameter for first line
+    t = np.cross(p3 - p1, d2) / cross_product
+    
+    # Calculate intersection point
+    intersection = p1 + t * d1
+    
+    return tuple(intersection)
+
 def generate_coil_stack(width: float, height: float, spacing: float, turns: int, 
                        num_layers: int, trace_width: float = 0.2) -> CoilStack:
     """
@@ -98,31 +140,80 @@ def generate_coil_stack(width: float, height: float, spacing: float, turns: int,
     spiral_points = []
     x_start = 0
     y_start = 0
-    w = width
-    h = height
-    
+    x_start_center = 0
+
+    triangle_mode = False
     for turn in range(turns):
-        if w <= 0 or h <= 0:
-            break
-            
-        spiral_points.extend([
-            [x_start, y_start],
-            [x_start + w, y_start],
-            [x_start + w, y_start + h],
-            [x_start + spacing, y_start + h]
-        ])
+
+        # CORE OF PROGRAM 
+
+        # Top left,
+        # Top right,
+        # Bottom right,
+        # Bottom left
+
+        # Trapezoid shape
+        x_taper = 2.5
+        y_taper = 0.6
+        h_factor = 0.76
+
+        top_left = [x_start*x_taper, y_start*y_taper + height*0.5*h_factor]
+        top_right = [width - x_start, y_start]
+        bottom_right = [width - x_start, -y_start + height]
+        bottom_left = [x_start*x_taper, -y_start*y_taper + height - height*0.5*h_factor]
+        center_left = line_intersection((top_left, top_right), (bottom_left, bottom_right))
+
+        if bottom_left[1] - top_left[1] < 4*spacing: # Transition to triangle after running out of room
+            if not triangle_mode:
+                spiral_points.extend([
+                    top_left,
+                    top_right,
+                    bottom_right
+                ])
+                triangle_mode = True
+                x_start_center += 15*spacing
+            else:
+                spiral_points.extend([
+                    center_left,
+                    top_right,
+                    bottom_right
+                ])
+                x_start_center += 30*spacing
+        else:
+            spiral_points.extend([
+                top_left,
+                top_right,
+                bottom_right,
+                bottom_left
+            ])
+            x_start_center += spacing
+
+
+        # For triangle shape
+        # spiral_points.extend([
+        #     [x_start*4, (height/2)],
+        #     [x_start + w, y_start],
+        #     [x_start + w, y_start + h],
+        #     #[x_start + spacing, y_start + h]
+        # ])
+
+        # For rectangle shape:
+        # spiral_points.extend([
+        #     [x_start, y_start],
+        #     [x_start + w, y_start],
+        #     [x_start + w, y_start + h],
+        #     [x_start + spacing, y_start + h]
+        # ])
         
         x_start += spacing
         y_start += spacing
-        w -= 2 * spacing
-        h -= 2 * spacing
     
     spiral_points = np.array(spiral_points)
     
-    # Calculate via positions
+    # Inner via calculations
     via_count = num_layers // 2
     via_spacing = 3.5 * spacing
-    via_start = turns * spacing
+    via_start = turns * spacing + (width*0.4)
     vias = np.array([(via_start + i*via_spacing, height*0.5) for i in range(1, via_count + 1)])
     
     # Generate sections for each layer
@@ -130,25 +221,26 @@ def generate_coil_stack(width: float, height: float, spacing: float, turns: int,
     add_vias = vias.copy()
     
     for i in range(num_layers):
-        if i == 0:
-            layer = "F.Cu"
-        elif i == num_layers - 1:
-            layer = "B.Cu"
-        else:
-            layer = f"In{i}.Cu"
-            
         # Create layer points
         layer_pts = spiral_points.copy()
         via = vias[i // 2]
+        if i == 0 or (i == num_layers - 1):
+            orig_init_pt = spiral_points[0]
+            new_orig_pt = np.array([[orig_init_pt[0] - spacing*3, orig_init_pt[1] - 0.5]])
+            layer_pts = np.vstack([new_orig_pt, layer_pts])
+            # Log these coordinates to connect up
+            layer = "F.Cu" if i == 0 else "B.Cu"
+        else:
+            layer = f"In{i}.Cu"
         
         # Add connection to via
-        corner_pt = np.array([[via[0], layer_pts[-1][1]]])
+        corner_pt = np.array([[via[0], height/2 + 0.5]])
         final_pt = np.array([[via[0], via[1]]])
-        layer_pts = np.vstack([layer_pts[:-1], corner_pt, final_pt])
+        layer_pts = np.vstack([layer_pts, corner_pt, final_pt])
         
         if "In" in layer:
-            # Make room for via
-            via_connect_pt = np.array([[layer_pts[0][0] - (spacing*1.25 + via_spacing*((i-1) // 2)), height*0.5]])
+            # Outer via
+            via_connect_pt = np.array([[layer_pts[0][0] - (spacing + via_spacing*((i-1) // 2)), height*0.5]])
             layer_pts = np.vstack([via_connect_pt, layer_pts])
             
             if i % 2 == 0:
@@ -386,7 +478,7 @@ def write_coils_to_file(filename, coil_sections, stack_uuids, num_sections_per_s
         lines = f.readlines()
     
     # Truncate at line 205 and add closing parenthesis
-    base_content = ''.join(lines[:204]) + ')\n'
+    base_content = ''.join(lines[:205]) + ')\n'
     
     # Combine all sections from all coils
     new_content = []
