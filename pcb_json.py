@@ -399,7 +399,13 @@ if __name__ == "__main__":
             
             pts = round_corners(pts, corner_radius)
 
-            !Calculate length here!
+            # Calculate total path length
+            total_length = 0
+            for i in range(len(pts)-1):
+                dx = pts[i+1][0] - pts[i][0]
+                dy = pts[i+1][1] - pts[i][1]
+                total_length += np.sqrt(dx*dx + dy*dy)
+            print(f"Total path length: {total_length:.2f} mm")
 
             via_pts = section.via_points if section.via_points is not None else None
             
